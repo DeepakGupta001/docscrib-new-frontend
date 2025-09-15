@@ -29,6 +29,7 @@ export const SidebarNavLink: React.FC<SidebarNavLinkProps> = ({ item }: SidebarN
     <Anchor
       href={item.href}
       key={item.title + item.href}
+      className="px-3 py-2 hover:bg-muted"
       activeClassName="!bg-primary text-primary-foreground">
       {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
       {item.title}
@@ -51,7 +52,7 @@ export default function Sidebar() {
             {page_routes.slice(0, -1).map((route, routeIndex) => (
               <Fragment key={route.title || `section-${routeIndex}`}>
                 {route.title && <div className="px-2 py-4 font-medium">{route.title}</div>}
-                <div className="[&>*:not([data-slot=separator])]:flex [&>*:not([data-slot=separator])]:items-center [&>*:not([data-slot=separator])]:gap-3 [&>*:not([data-slot=separator])]:rounded-lg [&>*:not([data-slot=separator])]:px-3 [&>*:not([data-slot=separator])]:py-2 [&>*:not([data-slot=separator])]:transition-all hover:[&>*:not([data-slot=separator])]:bg-muted">
+                <div className="[&>*:not([data-slot=separator])]:flex [&>*:not([data-slot=separator])]:items-center [&>*:not([data-slot=separator])]:gap-3 [&>*:not([data-slot=separator])]:rounded-lg [&>*:not([data-slot=separator])]:transition-all">
                   {route.items.map((item, key) => {
                     if (item.asButton) {
                       return (
@@ -71,19 +72,19 @@ export default function Sidebar() {
                       <Fragment key={item.title}>
                         {item.items?.length ? (
                           <Fragment>
-                            <Collapsible defaultOpen className="group !block transition-all hover:data-[state=open]:bg-transparent">
-                              <CollapsibleTrigger className="flex w-full items-center gap-3">
+                            <Collapsible defaultOpen className="group !block transition-all ">
+                              <CollapsibleTrigger className="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted">
                                 {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
                                 {item.title}
                                 <ChevronDown className="ms-auto h-4 w-4 transition-transform group-data-[state=closed]:rotate-90" />
                               </CollapsibleTrigger>
                               <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                                <div className="py-2 *:flex *:items-center *:gap-3 *:rounded-lg *:px-7 *:py-2 *:transition-all hover:*:bg-muted">
+                                <div className="border-l-2 border-border/40 ml-5 pl-4 py-2 *:flex *:items-center *:gap-3 *:rounded-lg *:px-3 *:py-2 *:transition-all">
                                   {item.items.map((subItem, subKey) => (
                                     subItem.isLabel ? (
                                       <div
                                         key={`${subItem.title}-${subKey}`}
-                                        className="px-7 py-1 text-xs text-muted-foreground hover:bg-transparent"
+                                        className="px-3 py-1 text-xs text-muted-foreground hover:bg-transparent"
                                       >
                                         {subItem.title}
                                       </div>
@@ -126,7 +127,7 @@ export default function Sidebar() {
                           </Button>
                         </div>
                       ) : (
-                        <Anchor href={item.href} key={item.title + item.href} activeClassName="!bg-primary text-primary-foreground">
+                        <Anchor href={item.href} key={item.title + item.href} className="hover:bg-muted" activeClassName="!bg-primary text-primary-foreground">
                           {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
                           {item.title}
                           {item.kbd && <span className="ms-auto text-xs text-muted-foreground">{item.kbd}</span>}

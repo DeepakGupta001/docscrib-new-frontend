@@ -41,13 +41,33 @@ export const page_routes: PageRoutesType[] = [
           { title: "Account", href: "/dashboard/pages/settings/account", icon: "UserCog" },
           { title: "Billing", href: "/dashboard/pages/settings/billing", icon: "CreditCard" },
           { title: "Memory", href: "/dashboard/pages/settings/memory", icon: "Brain" },
-          { title: "Display controls", href: "/dashboard/pages/settings/display-controls", icon: "Monitor" },
-          { title: "Data management", href: "/dashboard/pages/settings/data-management", icon: "Database" },
-          { title: "Defaults", href: "/dashboard/pages/settings/defaults", icon: "SlidersHorizontal" },
+          {
+            title: "Display controls",
+            href: "/dashboard/pages/settings/display-controls",
+            icon: "Monitor"
+          },
+          {
+            title: "Data management",
+            href: "/dashboard/pages/settings/data-management",
+            icon: "Database"
+          },
+          {
+            title: "Defaults",
+            href: "/dashboard/pages/settings/defaults",
+            icon: "SlidersHorizontal"
+          },
           { title: "Notifications", href: "/dashboard/pages/settings/notifications", icon: "Bell" },
-          { title: "Heidi Labs", href: "/dashboard/pages/settings/heidi-labs", icon: "FlaskConical" },
+          {
+            title: "Heidi Labs",
+            href: "/dashboard/pages/settings/heidi-labs",
+            icon: "FlaskConical"
+          },
           { title: "Integrations", href: "#", isLabel: true },
-          { title: "EMR integrations", href: "/dashboard/pages/settings/emr-integrations", icon: "PlugZap" },
+          {
+            title: "EMR integrations",
+            href: "/dashboard/pages/settings/emr-integrations",
+            icon: "PlugZap"
+          },
           { title: "Coding", href: "/dashboard/pages/settings/coding", icon: "Code" }
         ]
       }
