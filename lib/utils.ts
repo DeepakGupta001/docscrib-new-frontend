@@ -23,7 +23,7 @@ export function generateMeta({
   canonical: string;
 }): Metadata {
   return {
-    title: `${title} - Shadcn UI Kit Free`,
+    title: `${title} - DocScribcrib`,
     description: description,
     openGraph: {
       images: [`${process.env.DASHBOARD_BASE_URL}/seo.jpg`]

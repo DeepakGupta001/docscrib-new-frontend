@@ -72,6 +72,9 @@ export default function Header() {
         <div className="w-full flex-1">
           <Search />
         </div>
+        <div className="hidden items-center gap-2 lg:flex">
+
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <figure className="cursor-pointer">
@@ -81,7 +84,11 @@ export default function Header() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem>  
+              <Link href="/dashboard/pages/settings">
+                Settings
+              </Link>
+           </DropdownMenuItem>
             <DropdownMenuItem>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Logout</DropdownMenuItem>

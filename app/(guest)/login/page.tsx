@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export async function generateMetadata() {
   return generateMeta({
-    title: "Login Page - Shadcn UI Kit Free",
+    title: "Login Page - DocScrib",
     description:
       "A login form with email and password. There's an option to login with Google and a link to sign up if you don't have an account.",
     canonical: "/login"

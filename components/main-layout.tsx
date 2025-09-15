@@ -2,6 +2,7 @@
 
 import Sidebar from "./layout/sidebar";
 import Header from "./layout/header";
+import Footer from "./layout/footer";
 import { cn } from "@/lib/utils";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -9,9 +10,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <>
       <div className="flex h-screen">
         <Sidebar />
-        <div className="w-full lg:ps-[--sidebar-width]">
+        <div className="flex flex-col h-screen w-full lg:ps-[--sidebar-width]">
           <Header />
-          <main className={cn("min-h-full p-4")}>{children}</main>
+          <main className={cn("flex-1 p-4")}>{children}</main>
+          <Footer />
         </div>
       </div>
     </>

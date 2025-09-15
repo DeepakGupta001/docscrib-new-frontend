@@ -9,7 +9,7 @@ import { generateMeta } from "@/lib/utils";
 
 export async function generateMetadata() {
   return generateMeta({
-    title: "Users - Shadcn UI Kit Free",
+    title: "Users - DocScrib",
     description:
       "A list of users created using the Tanstack Table. Tailwind is built on CSS and React.",
     canonical: "/pages/users"

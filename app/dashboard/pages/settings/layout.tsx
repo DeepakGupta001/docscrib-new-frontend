@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarNav } from "./sidebar-nav";
 import { generateMeta } from "@/lib/utils";
+import Header from "@/components/layout/header";
 
 export async function generateMetadata() {
   return generateMeta({
@@ -18,25 +19,26 @@ const sidebarNavItems = [
   },
   {
     title: "Account",
-    href: "#"
+    href: "/dashboard/pages/settings/account"
   },
   {
     title: "Appearance",
-    href: "#"
+    href: "/dashboard/pages/settings/appearance"
   },
   {
     title: "Notifications",
-    href: "#"
+    href: "/dashboard/pages/settings/notifications"
   },
   {
     title: "Display",
-    href: "#"
+    href: "/dashboard/pages/settings/display"
   }
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      
       <div className="space-y-0.5">
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
         <p className="text-muted-foreground">
