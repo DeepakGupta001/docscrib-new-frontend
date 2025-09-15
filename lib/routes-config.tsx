@@ -21,7 +21,7 @@ export const page_routes: PageRoutesType[] = [
       { title: "Dashboard", href: "/dashboard/", icon: "Home" },
       { title: "New session", href: "/dashboard/new-session", icon: "Plus", asButton: true },
       { title: "Hide sessions", href: "#", icon: "EyeOff" },
-      { title: "Tasks", href: "/dashboard/tasks", icon: "ListTodo" },
+      { title: "Tasks", href: "/dashboard/pages/tasks", icon: "ListTodo" },
       {
         title: "Templates",
         href: "/",
