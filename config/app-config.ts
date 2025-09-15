@@ -1,12 +1,12 @@
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "Studio Admin",
+  name: "Docscrib AI",
   version: "1.0.0",
-  copyright: `© ${currentYear}, Studio Admin.`,
+  copyright: `© ${currentYear}, Docscrib.`,
   meta: {
-    title: "Studio Admin - Modern Next.js Dashboard Starter Template",
+    title: "Docscrib ‒ AI-Powered Medical Documentation",
     description:
-      "Studio Admin is a modern, open-source dashboard starter template built with Next.js 15, Tailwind CSS v4, and shadcn/ui. Perfect for SaaS apps, admin panels, and internal tools—fully customizable and production-ready."
+      "Docscrib is an AI-powered solution for medical documentation, helping healthcare providers save time by generating accurate clinical notes fast."
   }
 };

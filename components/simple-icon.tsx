@@ -12,7 +12,7 @@ type SimpleIconProps = {
 } & React.SVGProps<SVGSVGElement>;
 
 export function SimpleIcon({ icon, className, ...props }: SimpleIconProps) {
-  const { title, path } = icon;
+  const { title, path, hex } = icon;
 
   return (
     <svg
@@ -20,11 +20,10 @@ export function SimpleIcon({ icon, className, ...props }: SimpleIconProps) {
       aria-label={title}
       aria-hidden="false"
       focusable="false"
-      className={cn("fill-foreground size-5", className)}
-      {...props}
-    >
+      className={cn("size-5", className)}
+      {...props}>
       <title>{title}</title>
-      <path d={path} />
+      <path d={path} fill={hex ? `#${hex}` : "currentColor"} />
     </svg>
   );
 }
