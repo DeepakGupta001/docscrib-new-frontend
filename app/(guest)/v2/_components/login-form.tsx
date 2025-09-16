@@ -75,7 +75,7 @@ export function LoginForm() {
           control={form.control}
           name="remember"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center">
+            <FormItem className="flex flex-row items-center space-x-2">
               <FormControl>
                 <Checkbox
                   id="login-remember"
@@ -84,7 +84,7 @@ export function LoginForm() {
                   className="size-4"
                 />
               </FormControl>
-              <FormLabel htmlFor="login-remember" className="text-muted-foreground ml-1 text-sm font-medium">
+              <FormLabel htmlFor="login-remember" className="text-muted-foreground text-sm font-medium mt-0.5">
                 Remember me for 30 days
               </FormLabel>
             </FormItem>

@@ -9,10 +9,15 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Search, Filter, Calendar, Plus, MoreHorizontal, CheckCircle2 } from "lucide-react"
 import { TaskModal } from "./task-modal"
+import CalendarDateRangePicker from "@/components/date-range-picker"
+import { DateRange } from "react-day-picker"
 
 export default function TasksPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<{ title: string; category: string } | null>(null)
+  const [statusFilter, setStatusFilter] = useState("To Do")
+  const [categoryFilter, setCategoryFilter] = useState("All")
+  const [dateFilter, setDateFilter] = useState<DateRange | undefined>(undefined)
 
   const handleNewTask = () => {
     setEditingTask(null)
@@ -59,30 +64,63 @@ export default function TasksPage() {
         </div>
 
         {/* Status Filter */}
-        <Button variant="outline" className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4" />
-          Status
-          <Badge variant="secondary" className="ml-2">To Do</Badge>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2 w-40 justify-between">
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="font-medium">Status</span>
+              <Badge variant="secondary" className="ml-auto">{statusFilter}</Badge>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-40">
+            {["All","To Do","Done"].map(s => (
+              <DropdownMenuItem key={s} onClick={() => setStatusFilter(s)}>
+                {s}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Category Filter */}
-        <Button variant="outline" className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          Category
-          <Badge variant="secondary" className="ml-2">All</Badge>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2 w-40 justify-between">
+              <Filter className="h-4 w-4" />
+              <span className="font-medium">Category</span>
+              <Badge variant="secondary" className="ml-auto">{categoryFilter}</Badge>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-40">
+            {["All","Order","Coordinate","Communicate","Document","Action"].map(c => (
+              <DropdownMenuItem
+                key={c}
+                onClick={() => setCategoryFilter(c)}
+              >
+                {c}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Date Filter */}
-        <Button variant="outline" className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          Date
-          <Badge variant="secondary" className="ml-2">All</Badge>
-        </Button>
+        {/* Date Range Filter */}
+        <CalendarDateRangePicker
+          className="w-auto"
+          date={dateFilter}
+          onDateChange={setDateFilter}
+        />
 
         {/* Reset filters */}
-        <button className="text-sm text-slate-500 hover:underline">
+        <Button
+          variant="ghost"
+          className="text-sm text-slate-500 hover:underline"
+          onClick={() => {
+            setStatusFilter("All")
+            setCategoryFilter("All")
+            setDateFilter(undefined)
+          }}
+        >
           Reset filters
-        </button>
+        </Button>
       </div>
 
       {/* Tasks Table */}

@@ -1,17 +1,18 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { page_routes } from "@/lib/routes-config";
 import Anchor from "../anchor";
 import Logo from "./logo";
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Icon from "../icon";
-import { ChevronDown, LockIcon } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { Separator2 } from "@/components/ui/seperator2"
+import { Separator2 } from "@/components/ui/seperator2";
+import ReferralModal from "../referral-modal";
+import ShortcutsPanel from "../shortcuts-panel";
 
 type SidebarNavLinkProps = {
   item: {
@@ -43,23 +44,39 @@ export const SidebarNavLink: React.FC<SidebarNavLinkProps> = ({ item }: SidebarN
 };
 
 export default function Sidebar() {
+  const [referralOpen, setReferralOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
   return (
     <div className="fixed hidden h-screen lg:block">
       <ScrollArea className="h-full w-[--sidebar-width] border-r bg-background px-4">
         <Logo />
-        <div className="flex h-[calc(100vh-3.5rem)] flex-col">{/* stack sections with footer pinned */}
+        <div className="flex h-[calc(100vh-3.5rem)] flex-col">
           <div>
             {page_routes.slice(0, -1).map((route, routeIndex) => (
               <Fragment key={route.title || `section-${routeIndex}`}>
                 {route.title && <div className="px-2 py-4 font-medium">{route.title}</div>}
                 <div className="[&>*:not([data-slot=separator])]:flex [&>*:not([data-slot=separator])]:items-center [&>*:not([data-slot=separator])]:gap-3 [&>*:not([data-slot=separator])]:rounded-lg [&>*:not([data-slot=separator])]:transition-all">
                   {route.items.map((item, key) => {
+                    if (item.title === "Earn $50") {
+                      return (
+                        <button
+                          type="button"
+                          key={item.title}
+                          onClick={() => setReferralOpen(true)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted"
+                        >
+                          {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
+                          {item.title}
+                        </button>
+                      );
+                    }
                     if (item.asButton) {
                       return (
                         <Button
                           key={item.title}
                           asChild
-                          className="mb-2 w-full justify-start bg-gray-900 text-white hover:!bg-black"
+                          className="mb-2 w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
                         >
                           <Link href={item.href} className="flex items-center">
                             {item.icon && <Icon name={item.icon} className="mr-2 h-4 w-4" />}
@@ -109,38 +126,55 @@ export default function Sidebar() {
               </Fragment>
             ))}
           </div>
-          {/* Footer group pinned at bottom */}
           <div className="mt-auto">
             <Separator2 className="mb-3 bg-border/40" />
             {page_routes.slice(-1).map((route, routeIndex) => (
               <Fragment key={route.title || `footer-${routeIndex}`}>
                 <div className="[&>*:not([data-slot=separator])]:flex [&>*:not([data-slot=separator])]:items-center [&>*:not([data-slot=separator])]:gap-3 [&>*:not([data-slot=separator])]:rounded-lg [&>*:not([data-slot=separator])]:px-3 [&>*:not([data-slot=separator])]:py-2 [&>*:not([data-slot=separator])]:transition-all hover:[&>*:not([data-slot=separator])]:bg-muted">
-                  {route.items.map((item) => (
-                    <Fragment key={item.title}>
-                      {item.title === "Help" ? (
-                        <div className="px-2">
-                          <Button asChild variant="secondary" className="mb-2 w-full justify-start">
-                            <Link href={item.href}>
-                              {item.icon && <Icon name={item.icon} className="mr-2 h-4 w-4" />}
-                              {item.title}
-                            </Link>
-                          </Button>
-                        </div>
-                      ) : (
-                        <Anchor href={item.href} key={item.title + item.href} className="hover:bg-muted" activeClassName="!bg-primary text-primary-foreground">
+                  {route.items.map((item, index) => {
+                    if (item.title === "Earn $50") {
+                      return (
+                        <button
+                          type="button"
+                          key={item.title}
+                          onClick={() => setReferralOpen(true)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted ${index === route.items.length - 1 ? 'mb-2' : ''}`}
+                        >
+                          {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
+                          {item.title}
+                        </button>
+                      );
+                    }
+                    if (item.title === "Shortcuts") {
+                      return (
+                        <button
+                          type="button"
+                          key={item.title}
+                          onClick={() => setShortcutsOpen(true)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted ${index === route.items.length - 1 ? 'mb-2' : ''}`}
+                        >
                           {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
                           {item.title}
                           {item.kbd && <span className="ms-auto text-xs text-muted-foreground">{item.kbd}</span>}
-                        </Anchor>
-                      )}
-                    </Fragment>
-                  ))}
+                        </button>
+                      );
+                    }
+                    return (
+                      <Anchor href={item.href} key={item.title + item.href} className={`hover:bg-muted ${index === route.items.length - 1 ? 'mb-2' : ''}`} activeClassName="!bg-primary text-primary-foreground">
+                        {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
+                        {item.title}
+                        {item.kbd && <span className="ms-auto text-xs text-muted-foreground">{item.kbd}</span>}
+                      </Anchor>
+                    );
+                  })}
                 </div>
               </Fragment>
             ))}
           </div>
         </div>
       </ScrollArea>
+      <ReferralModal open={referralOpen} onOpenChange={setReferralOpen} />
+      <ShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

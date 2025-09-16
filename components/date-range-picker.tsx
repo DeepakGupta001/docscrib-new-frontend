@@ -14,13 +14,20 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 
+interface CalendarDateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+  date?: DateRange | undefined;
+  onDateChange?: (date: DateRange | undefined) => void;
+}
+
 export default function CalendarDateRangePicker({
   className,
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 20),
-  });
+  date: externalDate,
+  onDateChange,
+}: CalendarDateRangePickerProps) {
+  const [internalDate, setInternalDate] = React.useState<DateRange | undefined>(undefined);
+
+  const date = externalDate !== undefined ? externalDate : internalDate;
+  const setDate = onDateChange || setInternalDate;
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -30,22 +37,25 @@ export default function CalendarDateRangePicker({
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[260px] justify-start text-left font-normal",
+              "w-[280px] justify-start text-left font-normal flex items-center gap-2",
               !date && "text-muted-foreground",
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="h-4 w-4" />
+            <span className="text-sm font-medium">Date</span>
+            <span className="text-muted-foreground">|</span>
             {date?.from ? (
               date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
+                <span className="px-2 py-0.5 rounded-md bg-muted text-sm">
+                  {format(date.from, "LLL dd, y")} - {format(date.to, "LLL dd, y")}
+                </span>
               ) : (
-                format(date.from, "LLL dd, y")
+                <span className="px-2 py-0.5 rounded-md bg-muted text-sm">
+                  {format(date.from, "LLL dd, y")}
+                </span>
               )
             ) : (
-              <span>Pick a date</span>
+              <span className="text-sm text-muted-foreground">Select date range</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -58,6 +68,16 @@ export default function CalendarDateRangePicker({
             onSelect={setDate}
             numberOfMonths={2}
           />
+          <div className="p-3 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setDate(undefined)}
+            >
+              Clear dates
+            </Button>
+          </div>
         </PopoverContent>
       </Popover>
     </div>

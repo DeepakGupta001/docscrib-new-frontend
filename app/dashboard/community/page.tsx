@@ -38,10 +38,10 @@ export async function generateMetadata() {
 }
 
 // Function to get initials from a name
-const getInitials = (name) => {
+const getInitials = (name: string) => {
   return name
     .split(' ')
-    .map(part => part[0])
+    .map((part: string) => part[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -142,7 +142,7 @@ export default function CommunityTemplatesPage() {
   ]
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-semibold">Community Templates</h1>
