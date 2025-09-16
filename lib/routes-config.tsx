@@ -58,8 +58,8 @@ export const page_routes: PageRoutesType[] = [
           },
           { title: "Notifications", href: "/dashboard/pages/settings/notifications", icon: "Bell" },
           {
-            title: "Heidi Labs",
-            href: "/dashboard/pages/settings/heidi-labs",
+            title: "DocScrib Labs",
+            href: "/dashboard/pages/settings/labs",
             icon: "FlaskConical"
           },
           { title: "Integrations", href: "#", isLabel: true },
