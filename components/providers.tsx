@@ -1,11 +1,17 @@
 "use client";
-import { Toaster } from "react-hot-toast";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+      disableTransitionOnChange
+    >
       {children}
-      <Toaster position="top-center" />
-    </>
+      <Toaster />
+    </ThemeProvider>
   );
 }

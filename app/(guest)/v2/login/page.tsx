@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 
 import { Globe } from "lucide-react";
 

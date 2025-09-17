@@ -1,4 +1,3 @@
-import toast from "react-hot-toast";
 import { handleApiError } from "./error-handler";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -24,12 +23,9 @@ async function throwIfResNotOk(res: Response) {
       errorMessage = `Request failed with status ${res.status}`;
     }
 
-    // For client errors like 400/401/403, just show toast and return response
+    // For client errors like 400/401/403, throw error to trigger catch block in components
     if ([400, 401, 403].includes(res.status)) {
-      toast.error(errorMessage, {
-        duration: 4000
-      });
-      return res;
+      throw new Error(errorMessage);
     }
 
     // For server errors (>=500), show toast and throw to break execution

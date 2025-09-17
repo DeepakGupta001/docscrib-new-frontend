@@ -29,7 +29,7 @@ import { page_routes } from "@/lib/routes-config";
 import { Fragment, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/hooks/use-auth";
 import AuthStatus from "@/components/auth-status";
 
