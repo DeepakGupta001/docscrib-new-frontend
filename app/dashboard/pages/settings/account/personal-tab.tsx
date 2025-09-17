@@ -95,7 +95,7 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                                         <FormLabel>Title</FormLabel>
                                         <Select
                                             onValueChange={field.onChange}
-                                            defaultValue={field.value}
+                                            value={field.value || undefined}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
@@ -154,9 +154,29 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Specialty</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value || undefined}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select your specialty" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="Internal Medicine">Internal Medicine</SelectItem>
+                                                <SelectItem value="Family Medicine">Family Medicine</SelectItem>
+                                                <SelectItem value="Pediatrics">Pediatrics</SelectItem>
+                                                <SelectItem value="Cardiology">Cardiology</SelectItem>
+                                                <SelectItem value="Dermatology">Dermatology</SelectItem>
+                                                <SelectItem value="Emergency Medicine">Emergency Medicine</SelectItem>
+                                                <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+                                                <SelectItem value="Psychiatry">Psychiatry</SelectItem>
+                                                <SelectItem value="Radiology">Radiology</SelectItem>
+                                                <SelectItem value="Surgery">Surgery</SelectItem>
+                                                <SelectItem value="Other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -184,7 +204,7 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                                         <FormLabel>Company size</FormLabel>
                                         <Select
                                             onValueChange={field.onChange}
-                                            defaultValue={field.value}
+                                            value={field.value || ""}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
@@ -211,9 +231,22 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Your role</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value || ""}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select your role" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="Individual clinician">Individual clinician</SelectItem>
+                                                <SelectItem value="Clinical lead, department lead, head of …">Clinical lead, department lead, head of …</SelectItem>
+                                                <SelectItem value="Executive team (CIO, CMIO, CEO etc.)">Executive team (CIO, CMIO, CEO etc.)</SelectItem>
+                                                <SelectItem value="Owner or practice manager">Owner or practice manager</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
