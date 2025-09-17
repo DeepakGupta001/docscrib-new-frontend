@@ -1,3 +1,6 @@
+import toast from "react-hot-toast";
+import { handleApiError } from "./error-handler";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
 async function throwIfResNotOk(res: Response) {
@@ -5,22 +8,32 @@ async function throwIfResNotOk(res: Response) {
     let errorMessage = `HTTP error! status: ${res.status}`;
 
     try {
-      const errorText = await res.text();
-      if (errorText) {
-        // Try to parse as JSON first
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorData.error || errorText;
-        } catch {
-          // If not JSON, use the text directly
+      const errorData = await res
+        .clone()
+        .json()
+        .catch(() => null);
+      if (errorData && (errorData.message || errorData.error)) {
+        errorMessage = errorData.message || errorData.error;
+      } else {
+        const errorText = await res.clone().text();
+        if (errorText) {
           errorMessage = errorText;
         }
       }
     } catch {
-      // If we can't read the response, use the status
       errorMessage = `Request failed with status ${res.status}`;
     }
 
+    // For client errors like 400/401/403, just show toast and return response
+    if ([400, 401, 403].includes(res.status)) {
+      toast.error(errorMessage, {
+        duration: 4000
+      });
+      return res;
+    }
+
+    // For server errors (>=500), show toast and throw to break execution
+    handleApiError(errorMessage);
     throw new Error(errorMessage);
   }
 }
@@ -39,7 +52,7 @@ export async function apiRequest(
     method,
     headers: data && !isFormData ? { "Content-Type": "application/json" } : {},
     body: isFormData ? data : data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include"
   });
 
   await throwIfResNotOk(res);
@@ -51,7 +64,7 @@ export const authApi = {
   async login(email: string, password: string) {
     const response = await apiRequest("POST", "/api/auth/login", {
       email,
-      password,
+      password
     });
     return response.json();
   },
@@ -61,7 +74,7 @@ export const authApi = {
       firstName,
       lastName,
       email,
-      password,
+      password
     });
     return response.json();
   },
@@ -98,5 +111,5 @@ export const authApi = {
   }) {
     const response = await apiRequest("POST", "/api/auth/google/callback", data);
     return response.json();
-  },
+  }
 };

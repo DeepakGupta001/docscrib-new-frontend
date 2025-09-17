@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 const config = {
-  darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -13,7 +12,7 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "0rem",
       screens: {
         "2xl": "1400px"
       }
