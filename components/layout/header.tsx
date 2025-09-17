@@ -1,4 +1,6 @@
-import { LockIcon, Menu } from "lucide-react";
+"use client";
+
+import { LockIcon, Menu, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,6 +9,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,10 +26,25 @@ import Search from "./search";
 import Logo from "./logo";
 import { SidebarNavLink } from "./sidebar";
 import { page_routes } from "@/lib/routes-config";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/hooks/use-auth";
+import AuthStatus from "@/components/auth-status";
 
 export default function Header() {
+  const router = useRouter();
+  const { logout, isLoading } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    toast.success("Logged out successfully", {
+      description: "You have been logged out of your account.",
+    });
+    router.push("/v2/login");
+  };
   return (
     <div className="sticky top-0 z-50 flex flex-col">
       <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px]">
@@ -73,7 +100,7 @@ export default function Header() {
           <Search />
         </div>
         <div className="hidden items-center gap-2 lg:flex">
-
+          <AuthStatus />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -85,13 +112,32 @@ export default function Header() {
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>  
-              <Link href="/dashboard/pages/settings">
-                Settings
+              <Link href="/dashboard/pages/settings/account">
+                Account
               </Link>
            </DropdownMenuItem>
             <DropdownMenuItem>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setIsOpen(true)}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
+            <AlertDialog open={isOpen} onOpenChange={(open) => !isLoading && setIsOpen(open)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You will be logged out of your account and redirected to the login page.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isLoading} onClick={() => setIsOpen(false)}>Cancel</AlertDialogCancel>
+                  <Button onClick={handleLogout} disabled={isLoading}>
+                    {isLoading ? "Logging out..." : "Logout"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>

@@ -3,7 +3,11 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export function GoogleButton({ className, ...props }: React.ComponentProps<typeof Button>) {
+interface GoogleButtonProps extends React.ComponentProps<typeof Button> {
+  loading?: boolean;
+}
+
+export function GoogleButton({ className, loading, ...props }: GoogleButtonProps) {
   return (
     <Button
       variant="outline"
@@ -15,7 +19,9 @@ export function GoogleButton({ className, ...props }: React.ComponentProps<typeo
         width={16}
         height={16}
       />
-      <span className="text-sm font-medium">Continue with Google</span>
+      <span className="text-sm font-medium">
+        {loading ? "Signing in..." : "Continue with Google"}
+      </span>
     </Button>
   );
 }

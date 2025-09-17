@@ -1,21 +1,50 @@
-import React from 'react';
-import { generateMeta } from "@/lib/utils";
+"use client";
+
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { Plus, Clock, FileText, Users, TrendingUp } from "lucide-react";
-
-export async function generateMetadata() {
-  return generateMeta({
-    title: "Dashboard - DocScrib",
-    description: "Your DocScrib dashboard overview.",
-    canonical: "/dashboard",
-  })
-}
+import { OnboardingModal } from "@/components/onboarding-modal";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export default function DashboardPage() {
+  const { user, checkAuthStatus } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Ensure user data is fresh when entering dashboard
+    checkAuthStatus();
+  }, []);
+
+  useEffect(() => {
+    // Check if user needs onboarding based on profile data
+    if (user) {
+      const needsOnboarding = !user.companySize || user.companySize === '' ||
+                             !user.role || user.role === '' ||
+                             !user.specialization || user.specialization === '' ||
+                             !user.organisationName || user.organisationName === '';
+
+      if (needsOnboarding) {
+        // Show onboarding modal after a brief delay for better UX
+        const timer = setTimeout(() => {
+          setShowOnboarding(true);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+      } else {
+        // Ensure modal is closed if user doesn't need onboarding
+        setShowOnboarding(false);
+      }
+    }
+  }, [user]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="h-full bg-slate-50">
       <div className="p-4 md:p-6">
@@ -166,6 +195,12 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={handleOnboardingComplete}
+      />
     </div>
   );
 }

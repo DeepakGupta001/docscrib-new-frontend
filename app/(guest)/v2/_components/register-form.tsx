@@ -6,10 +6,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authApi } from "@/lib/api";
 
 const FormSchema = z
   .object({
@@ -27,6 +29,8 @@ const FormSchema = z
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -40,13 +44,22 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    toast("You submitted the following values", {
-      description: (
-        <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
+    setIsLoading(true);
+    try {
+      await authApi.register(data.firstName, data.lastName, data.email, data.password);
+      toast.success("Registration successful!", {
+        description: "Your account has been created. You can now log in.",
+      });
+      // Optionally redirect to login page
+      router.push("/v2/login");
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration failed", {
+        description: error instanceof Error ? error.message : "Please check your information and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -159,8 +172,8 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
-        <Button className="w-full" type="submit">
-          Register
+        <Button className="w-full" type="submit" disabled={isLoading}>
+          {isLoading ? "Creating account..." : "Register"}
         </Button>
       </form>
     </Form>
