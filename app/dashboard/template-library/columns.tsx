@@ -25,9 +25,10 @@ interface ColumnsProps {
   onEdit?: (template: Template) => void
   onFavorite?: (template: Template) => void
   onDelete?: (template: Template) => void
+  onChangeVisibility?: (template: Template) => void
 }
 
-export const createColumns = ({ onEdit, onFavorite, onDelete }: ColumnsProps): ColumnDef<Template>[] => [
+export const createColumns = ({ onEdit, onFavorite, onDelete, onChangeVisibility }: ColumnsProps): ColumnDef<Template>[] => [
   {
     accessorKey: "name",
     header: "Template name",
@@ -114,9 +115,10 @@ export const createColumns = ({ onEdit, onFavorite, onDelete }: ColumnsProps): C
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem   onClick={() => onEdit?.(template)}>Edit</DropdownMenuItem>
               <DropdownMenuItem>Duplicate</DropdownMenuItem>
-              <DropdownMenuItem>Rename</DropdownMenuItem>
-              <DropdownMenuItem>Change visibility</DropdownMenuItem>
+              {/* <DropdownMenuItem>Rename</DropdownMenuItem> */}
+              <DropdownMenuItem onClick={() => onChangeVisibility?.(template)}>Change visibility</DropdownMenuItem>
               <DropdownMenuItem 
                 className="text-destructive"
                 onClick={() => onDelete?.(template)}

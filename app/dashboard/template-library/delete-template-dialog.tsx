@@ -35,8 +35,8 @@ export function DeleteTemplateDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure you want to delete this template?</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
-            <p>Be careful, templates cannot be restored once deleted.</p>
-            <p>Any existing notes created with this template will not be deleted.</p>
+            <div>Be careful, templates cannot be restored once deleted.</div>
+            <div>Any existing notes created with this template will not be deleted.</div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

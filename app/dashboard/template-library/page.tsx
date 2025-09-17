@@ -22,6 +22,7 @@ import { SelectTemplateModal } from "./select-template-modal"
 import { DeleteTemplateDialog } from "./delete-template-dialog"
 import { DocumentEditModal } from "./document-edit-modal"
 import { PdfEditModal } from "./pdf-edit-modal"
+import { VisibilityChangeModal } from "./visibility-change-modal"
 import { DataTable } from "@/components/ui/data-table"
 import { createColumns, type Template } from "./columns"
 
@@ -35,7 +36,11 @@ export default function TemplatesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDocumentEditModalOpen, setIsDocumentEditModalOpen] = useState(false)
   const [isPdfEditModalOpen, setIsPdfEditModalOpen] = useState(false)
+  const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false)
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null)
+  const [templateToChangeVisibility, setTemplateToChangeVisibility] = useState<Template | null>(null)
+  
+  console.log("Modal states:", { isVisibilityModalOpen, templateToChangeVisibility })
   const [uploadedPdfFile, setUploadedPdfFile] = useState<File | null>(null)
   const [templates, setTemplates] = useState<Template[]>([
     { name: "Accident and Emergency Nurse's note", type: "Note", uses: 0, lastUsed: "-", creator: "Heidi", visibility: "Just me", favorite: false },
@@ -199,10 +204,43 @@ export default function TemplatesPage() {
     setIsPdfEditModalOpen(false)
   }
 
+  const handleChangeVisibility = (template: Template) => {
+    console.log("Change visibility clicked for template:", template)
+    console.log("Template type:", template.type)
+    // Only open visibility modal for Notes and Documents (not PDFs)
+    if (template.type === "Note" || template.type === "Document") {
+      console.log("Opening visibility modal for Note/Document template")
+      setTemplateToChangeVisibility(template)
+      setIsVisibilityModalOpen(true)
+    } else {
+      console.log("Not a Note or Document template, modal will not open")
+    }
+  }
+
+  const handleVisibilitySave = (visibility: "only-me" | "team" | "community", highlightContribution?: boolean) => {
+    if (templateToChangeVisibility) {
+      setTemplates(prevTemplates =>
+        prevTemplates.map(t =>
+          t.name === templateToChangeVisibility.name
+            ? { 
+                ...t, 
+                visibility: visibility === "only-me" ? "Just me" : 
+                          visibility === "team" ? "Team" : "Community"
+              }
+            : t
+        )
+      )
+    }
+    console.log("Visibility saved:", { visibility, highlightContribution })
+    setIsVisibilityModalOpen(false)
+    setTemplateToChangeVisibility(null)
+  }
+
   const columns = createColumns({
     onEdit: handleEditTemplate,
     onFavorite: handleFavoriteTemplate,
     onDelete: handleDeleteTemplateFromTable,
+    onChangeVisibility: handleChangeVisibility,
   })
 
 
@@ -298,7 +336,7 @@ export default function TemplatesPage() {
           creatorFilterKey="creator"
           dateFilterKey="lastUsed"
         />
-      </div>
+        </div>
 
       {/* Create Template Modal */}
       <CreateTemplateModal
@@ -372,6 +410,21 @@ export default function TemplatesPage() {
         onSave={handlePdfEditSave}
         pdfFile={uploadedPdfFile}
         templateName="EDIT OoPdfFormExample.pdf"
+      />
+
+      {/* Visibility Change Modal */}
+      <VisibilityChangeModal
+        isOpen={isVisibilityModalOpen}
+        onClose={() => {
+          setIsVisibilityModalOpen(false)
+          setTemplateToChangeVisibility(null)
+        }}
+        onSave={handleVisibilitySave}
+        templateName={templateToChangeVisibility?.name}
+        currentVisibility={
+          templateToChangeVisibility?.visibility === "Team" ? "team" : 
+          templateToChangeVisibility?.visibility === "Community" ? "community" : "only-me"
+        }
       />
     </div>
   )
