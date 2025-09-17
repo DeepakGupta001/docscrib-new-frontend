@@ -1,16 +1,52 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Separator } from "@/components/ui/separator";
-import Header from '../default/_components/Header';
-import NoteTab from '../default/_components/NoteTab';
-import TranscriptTab from '../default/_components/TranscriptTab';
-import ContextTab from '../default/_components/ContextTab';
-import Footer from '../default/_components/Footer';
-import WarningBar from '../default/_components/WarningBar';
+import Header from './_components/Header';
+import NoteTab from './_components/NoteTab';
+import TranscriptTab from './_components/TranscriptTab';
+import ContextTab from './_components/ContextTab';
+import Footer from './_components/Footer';
+import WarningBar from './_components/WarningBar';
+import { TranscriptView } from './_components/transcript-view';
 
 export default function NewSessionPage() {
+  const [transcriptData, setTranscriptData] = useState({
+    transcript: '',
+    isRecording: false,
+    isPaused: false,
+    currentTime: '0:00',
+    error: null as string | null | undefined
+  } as {
+    transcript: string;
+    isRecording: boolean;
+    isPaused: boolean;
+    currentTime: string;
+    error?: string | null;
+  });
+  
+  const [hasStartedRecording, setHasStartedRecording] = useState(false);
+
+  const handleTranscriptUpdate = useCallback((data: typeof transcriptData) => {
+    setTranscriptData(data);
+    // Track when recording has been started at least once
+    if (data.isRecording && !hasStartedRecording) {
+      setHasStartedRecording(true);
+    }
+  }, [hasStartedRecording]);
+
+  const handleStartNewRecording = useCallback(() => {
+    setTranscriptData({
+      transcript: '',
+      isRecording: false,
+      isPaused: false,
+      currentTime: '0:00',
+      error: null
+    });
+    setHasStartedRecording(false);
+  }, []);
+
 
   return (
     <div className="h-full bg-slate-50">
@@ -18,13 +54,11 @@ export default function NewSessionPage() {
       <div className="p-4 md:p-6">
         <h1 className="text-2xl font-bold">New Session</h1>
         <p>Start a new session for note-taking and transcription.</p>
-
-
       </div>
 
       <Separator />
 
-      <Header />
+      <Header onTranscriptUpdate={handleTranscriptUpdate} />
 
       {/* Main Content */}
       <div className="bg-slate-50">
@@ -57,7 +91,18 @@ export default function NewSessionPage() {
           </TabsContent>
 
           <TabsContent value="transcript" className="py-8 px-4 m-0">
-            <TranscriptTab />
+            {transcriptData.isRecording || transcriptData.transcript || hasStartedRecording ? (
+              <TranscriptView 
+                transcript={transcriptData.transcript}
+                isRecording={transcriptData.isRecording}
+                isPaused={transcriptData.isPaused}
+                currentTime={transcriptData.currentTime}
+                error={transcriptData.error}
+                onStartNewRecording={handleStartNewRecording}
+              />
+            ) : (
+              <TranscriptTab />
+            )}
           </TabsContent>
 
           <TabsContent value="context" className="py-8 px-4 m-0">

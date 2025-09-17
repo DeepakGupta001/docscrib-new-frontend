@@ -2,7 +2,9 @@
 
 import { config } from "dotenv";
 
-config();
+// Load environment variables from .env.local and .env
+config({ path: '.env.local' });
+config({ path: '.env' });
 
 const nextConfig = {
   env: {
