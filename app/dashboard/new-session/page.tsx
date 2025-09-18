@@ -51,10 +51,7 @@ export default function NewSessionPage() {
   return (
     <div className="h-full bg-slate-50">
       {/* Header */}
-      <div className="p-4 md:p-6">
-        <h1 className="text-2xl font-bold">New Session</h1>
-        <p>Start a new session for note-taking and transcription.</p>
-      </div>
+     
 
       <Separator />
 
