@@ -22,12 +22,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Languages, Calendar } from "lucide-react";
 
-const accountFormSchema = z.object({
-    displayLanguage: z.string().default("English"),
-    dateFormat: z.string().default("DD/MM/YYYY"),
-});
-
-type AccountFormValues = z.infer<typeof accountFormSchema>;
+type AccountFormValues = {
+    displayLanguage: string;
+    dateFormat: string;
+};
 
 interface PreferencesTabProps {
     form: ReturnType<typeof useForm<AccountFormValues>>;
@@ -136,8 +134,12 @@ export function PreferencesTab({ form, onSubmit }: PreferencesTabProps) {
 
                             <Separator className="my-6" />
 
-                            <div className="flex justify-start">
-                                <Button type="submit" size="lg">
+                            <div className="flex justify-end">
+                                <Button
+                                    type="submit"
+                                    size="lg"
+                                    disabled={!form.formState.isDirty}
+                                >
                                     Update preferences
                                 </Button>
                             </div>

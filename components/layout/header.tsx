@@ -32,10 +32,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/hooks/use-auth";
 import AuthStatus from "@/components/auth-status";
+import UserAvatar from "@/components/user-avatar";
 
 export default function Header() {
   const router = useRouter();
-  const { logout, isLoading } = useAuth();
+  const { logout, isLoading, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -104,9 +105,13 @@ export default function Header() {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <figure className="cursor-pointer">
-              <img src={`/images/avatars/1.png`} className="h-10 w-10" alt="..." />
-            </figure>
+            <div className="cursor-pointer">
+              <UserAvatar
+                image={user?.profileImageUrl}
+                fallback={`${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`}
+                className="h-12 w-12 rounded-full"
+              />
+            </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>

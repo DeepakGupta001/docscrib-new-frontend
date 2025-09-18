@@ -83,6 +83,7 @@ export const authApi = {
   async updateCurrentUser(data: {
     firstName?: string;
     lastName?: string;
+    title?: string;
     specialization?: string;
     organisationName?: string;
     companySize?: string;
@@ -106,6 +107,11 @@ export const authApi = {
     accessToken: string;
   }) {
     const response = await apiRequest("POST", "/api/auth/google/callback", data);
+    return response.json();
+  },
+
+  async uploadProfileImage(formData: FormData) {
+    const response = await apiRequest("POST", "/api/auth/upload-profile-image", formData);
     return response.json();
   }
 };

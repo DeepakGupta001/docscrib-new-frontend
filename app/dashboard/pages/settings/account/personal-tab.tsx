@@ -31,28 +31,76 @@ import {
     CardTitle
 } from "@/components/ui/card";
 import { Upload } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SearchableCountryDropdown } from "@/components/country-dropdown";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { toast } from "sonner";
 
-const accountFormSchema = z.object({
-    title: z.string().optional(),
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    specialty: z.string().optional(),
-    organisationName: z.string().optional(),
-    companySize: z.string().optional(),
-    role: z.string().optional(),
-    country: z.string().min(1, "Country is required"),
-});
-
-type AccountFormValues = z.infer<typeof accountFormSchema>;
+type AccountFormValues = {
+    title?: string;
+    firstName: string;
+    lastName: string;
+    specialty?: string;
+    organisationName?: string;
+    companySize?: string;
+    role?: string;
+    country: string;
+};
 
 interface PersonalTabProps {
     form: ReturnType<typeof useForm<AccountFormValues>>;
     onSubmit: (data: AccountFormValues) => void;
+    user?: {
+        firstName?: string;
+        lastName?: string;
+        picture?: string;
+    } | null;
+    isSubmitting?: boolean;
 }
 
-export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
+export function PersonalTab({ form, onSubmit, user, isSubmitting = false }: PersonalTabProps) {
+    const { uploadProfileImage, user: authUser } = useAuth();
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileSelect = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error('Please select a valid image file (JPG, PNG, or GIF)');
+            return;
+        }
+
+        // Validate file size (5MB limit)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+            toast.error('File size must be less than 5MB');
+            return;
+        }
+
+        setIsUploadingImage(true);
+        try {
+            const imageUrl = await uploadProfileImage(file);
+            toast.success('Profile image uploaded successfully!');
+            console.log('New profile image URL:', imageUrl);
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to upload profile image');
+        } finally {
+            setIsUploadingImage(false);
+            // Clear the file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -65,9 +113,12 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                 {/* Profile Image */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-lg border">
                     <Avatar className="h-16 w-16">
-                        <AvatarImage src="" alt="Profile" />
+                        <AvatarImage
+                            src={user?.profileImageUrl ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${user.profileImageUrl}` : ""}
+                            alt="Profile"
+                        />
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                            {form.watch('firstName')?.[0]}{form.watch('lastName')?.[0]}
+                            {(user?.firstName || form.watch('firstName'))?.[0]}{(user?.lastName || form.watch('lastName'))?.[0]}
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -75,10 +126,23 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                         <p className="text-sm text-muted-foreground mt-1">
                             Upload a JPG or PNG image up to 5MB. Shows in the template community.
                         </p>
-                        <Button variant="outline" size="sm" className="mt-3 gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3 gap-2"
+                            onClick={handleFileSelect}
+                            disabled={isUploadingImage}
+                        >
                             <Upload className="h-4 w-4" />
-                            Upload image
+                            {isUploadingImage ? "Uploading..." : "Upload image"}
                         </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                        />
                     </div>
                 </div>
 
@@ -95,7 +159,7 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                                         <FormLabel>Title</FormLabel>
                                         <Select
                                             onValueChange={field.onChange}
-                                            value={field.value || undefined}
+                                            value={field.value || ""}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
@@ -156,7 +220,7 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                                         <FormLabel>Specialty</FormLabel>
                                         <Select
                                             onValueChange={field.onChange}
-                                            value={field.value || undefined}
+                                            value={field.value || ""}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
@@ -278,7 +342,14 @@ export function PersonalTab({ form, onSubmit }: PersonalTabProps) {
                             )}
                         />
 
-                        <Button type="submit">Update profile</Button>
+                        <div className="flex justify-end">
+                            <Button
+                                type="submit"
+                                disabled={isSubmitting || !form.formState.isDirty}
+                            >
+                                {isSubmitting ? "Updating..." : "Update profile"}
+                            </Button>
+                        </div>
                     </form>
                 </Form>
             </CardContent>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Check, Plus, User } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Check, Plus, User, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Mic,
@@ -73,25 +74,227 @@ export default function Header({ onTranscriptUpdate }: HeaderProps) {
   
   const [newPatient, setNewPatient] = useState({
     fullName: "",
-    dateOfBirth: "",
+    dateOfBirth: undefined as Date | undefined,
     phoneNumber: "",
     emailAddress: ""
   });
 
-  // Sample patient data
-  const patients = [
-    { id: "1", name: "John Doe", dob: "1985-03-15", phone: "+1 (555) 123-4567", email: "john.doe@email.com" },
-    { id: "2", name: "Jane Smith", dob: "1990-07-22", phone: "+1 (555) 234-5678", email: "jane.smith@email.com" },
-    { id: "3", name: "Mike Johnson", dob: "1978-11-08", phone: "+1 (555) 345-6789", email: "mike.johnson@email.com" },
-    { id: "4", name: "Sarah Wilson", dob: "1992-01-30", phone: "+1 (555) 456-7890", email: "sarah.wilson@email.com" },
-    { id: "5", name: "David Brown", dob: "1980-05-12", phone: "+1 (555) 567-8901", email: "david.brown@email.com" },
-  ];
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
+  const [isCreatingPatient, setIsCreatingPatient] = useState(false);
+  const [formErrors, setFormErrors] = useState({
+    fullName: "",
+    emailAddress: "",
+    phoneNumber: "",
+    dateOfBirth: ""
+  });
 
-  const handleCreatePatient = () => {
-    // Here you would typically save to backend
-    console.log("Creating patient:", newPatient);
-    setIsModalOpen(false);
-    setNewPatient({ fullName: "", dateOfBirth: "", phoneNumber: "", emailAddress: "" });
+  // Memoized validation functions for better performance
+  const validateFullName = useCallback((name: string) => {
+    if (!name.trim()) return "Full name is required";
+    if (name.trim().length < 2) return "Full name must be at least 2 characters";
+    if (!/^[a-zA-Z\s]+$/.test(name.trim())) return "Please Enter Valid Name";
+    return "";
+  }, []);
+
+  const validateEmail = useCallback((email: string) => {
+    if (!email.trim()) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) return "Please enter a valid email address";
+    return "";
+  }, []);
+
+  const validatePhoneNumber = useCallback((phone: string) => {
+    if (!phone.trim()) return "Phone number is required";
+    // Remove all non-digit characters for validation
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) return "Phone number must be at least 10 digits";
+    if (cleanPhone.length > 15) return "Phone number must be less than 15 digits";
+    if (!/^\d+$/.test(cleanPhone)) return "Phone number can only contain numbers";
+    return "";
+  }, []);
+
+  const validateDateOfBirth = useCallback((date: Date | undefined) => {
+    if (!date) return "Date of birth is required";
+    const today = new Date();
+    const minAge = 1; // Minimum age of 1 year
+    const maxAge = 150; // Maximum age of 150 years
+
+    const age = today.getFullYear() - date.getFullYear();
+    if (age < minAge) return "Patient must be at least 1 year old";
+    if (age > maxAge) return "Please enter a valid date of birth";
+    return "";
+  }, []);
+
+  // Debounced validation to improve performance
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+
+  const debouncedValidation = useCallback((field: string, value: string | Date | undefined) => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    const timer = setTimeout(() => {
+      let error = "";
+      switch (field) {
+        case 'fullName':
+          error = validateFullName(value as string);
+          break;
+        case 'emailAddress':
+          error = validateEmail(value as string);
+          break;
+        case 'phoneNumber':
+          error = validatePhoneNumber(value as string);
+          break;
+        case 'dateOfBirth':
+          error = validateDateOfBirth(value as Date | undefined);
+          break;
+      }
+      setFormErrors(prev => ({...prev, [field]: error}));
+    }, 300); // 300ms debounce
+
+    setDebounceTimer(timer);
+  }, [validateFullName, validateEmail, validatePhoneNumber, validateDateOfBirth]);
+
+  // Memoized event handlers for better performance
+  const handleFullNameChange = useCallback((value: string) => {
+    setNewPatient(prev => ({...prev, fullName: value}));
+    debouncedValidation('fullName', value);
+  }, [debouncedValidation]);
+
+  const handleEmailChange = useCallback((value: string) => {
+    setNewPatient(prev => ({...prev, emailAddress: value}));
+    debouncedValidation('emailAddress', value);
+  }, [debouncedValidation]);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    setNewPatient(prev => ({...prev, phoneNumber: value}));
+    debouncedValidation('phoneNumber', value);
+  }, [debouncedValidation]);
+
+  const handleDateOfBirthChange = useCallback((date: Date | undefined) => {
+    setNewPatient(prev => ({...prev, dateOfBirth: date}));
+    debouncedValidation('dateOfBirth', date);
+  }, [debouncedValidation]);
+
+  // Fetch patients from API
+  const fetchPatients = async () => {
+    setPatientsLoading(true);
+    setPatientsError(null);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/patients', {
+        method: 'GET',
+        credentials: 'include', // Include cookies for session authentication
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setPatients(data);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setPatientsError(error instanceof Error ? error.message : 'Failed to fetch patients');
+      // Fallback to sample data if API fails
+      setPatients([
+        { id: "1", name: "John Doe", email: "john.doe@email.com", phone: "+1 (555) 123-4567" },
+        { id: "2", name: "Jane Smith", email: "jane.smith@email.com", phone: "+1 (555) 234-5678" },
+        { id: "3", name: "Mike Johnson", email: "mike.johnson@email.com", phone: "+1 (555) 345-6789" },
+      ]);
+    } finally {
+      setPatientsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  // Cleanup debounce timer
+  useEffect(() => {
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [debounceTimer]);
+
+  const handleCreatePatient = async () => {
+    // Validate all fields
+    const fullNameError = validateFullName(newPatient.fullName);
+    const emailError = validateEmail(newPatient.emailAddress);
+    const phoneError = validatePhoneNumber(newPatient.phoneNumber);
+    const dateError = validateDateOfBirth(newPatient.dateOfBirth);
+
+    setFormErrors({
+      fullName: fullNameError,
+      emailAddress: emailError,
+      phoneNumber: phoneError,
+      dateOfBirth: dateError
+    });
+
+    // Check if there are any validation errors
+    if (fullNameError || emailError || phoneError || dateError) {
+      console.error("Validation errors found");
+      return;
+    }
+
+    setIsCreatingPatient(true);
+
+    try {
+      const patientData = {
+        name: newPatient.fullName,
+        email: newPatient.emailAddress,
+        phone: newPatient.phoneNumber,
+        dateOfBirth: newPatient.dateOfBirth!.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        address: "" // Optional field, can be empty
+      };
+
+      const response = await fetch('http://localhost:5000/api/patients', {
+        method: 'POST',
+        credentials: 'include', // Include cookies for session authentication
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patientData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const createdPatient = await response.json();
+      console.log("Patient created successfully:", createdPatient);
+
+      // Close modal and reset form immediately
+      setIsModalOpen(false);
+      setNewPatient({ fullName: "", dateOfBirth: undefined, phoneNumber: "", emailAddress: "" });
+      setFormErrors({
+        fullName: "",
+        emailAddress: "",
+        phoneNumber: "",
+        dateOfBirth: ""
+      });
+
+      // Clear loading state immediately after successful creation
+      setIsCreatingPatient(false);
+
+      // Refresh the patient list from API (don't await this to avoid blocking UI)
+      fetchPatients();
+
+    } catch (error) {
+      console.error('Error creating patient:', error);
+      // Clear loading state on error
+      setIsCreatingPatient(false);
+      // You could show an error toast/notification here
+    }
   };
 
   const handleLanguageSelect = (language: string) => {
@@ -315,40 +518,16 @@ export default function Header({ onTranscriptUpdate }: HeaderProps) {
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <span className="text-xl font-semibold text-blue-600 hover:text-blue-800 cursor-pointer underline">
-                {selectedPatient ? patients.find(p => p.id === selectedPatient)?.name : "Add patient details"}
+                {selectedPatient ? patients.find(p => p.id.toString() === selectedPatient)?.name : "Add patient details"}
               </span>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0">
+            <PopoverContent className="w-96 p-0">
               <Command>
                 <CommandInput placeholder="Search patients..." />
                 <CommandList>
                   <CommandEmpty>No patients found.</CommandEmpty>
-                  <CommandGroup>
-                    {patients.map((patient) => (
-                      <CommandItem
-                        key={patient.id}
-                        value={patient.name}
-                        onSelect={() => {
-                          setSelectedPatient(patient.id);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedPatient === patient.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <div>
-                            <div className="font-medium">{patient.name}</div>
-                            <div className="text-xs text-muted-foreground">{patient.email}</div>
-                          </div>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+
+                  {/* Create new patient button at the top */}
                   <CommandGroup>
                     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                       <DialogTrigger asChild>
@@ -364,67 +543,161 @@ export default function Header({ onTranscriptUpdate }: HeaderProps) {
                             Enter the patient's details below. Click save when you're done.
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="fullName" className="text-right">
-                              Full Name
+                        <div className="space-y-6 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="fullName" className="text-sm font-medium">
+                              Full Name *
                             </Label>
                             <Input
                               id="fullName"
                               value={newPatient.fullName}
-                              onChange={(e) => setNewPatient({...newPatient, fullName: e.target.value})}
-                              className="col-span-3"
+                              onChange={(e) => handleFullNameChange(e.target.value)}
                               placeholder="Enter full name"
+                              className={cn("w-full", formErrors.fullName && "border-red-500")}
                             />
+                            {formErrors.fullName && (
+                              <p className="text-sm text-red-500">{formErrors.fullName}</p>
+                            )}
                           </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="dateOfBirth" className="text-right">
-                              Date of Birth
+                          <div className="space-y-2">
+                            <Label htmlFor="dateOfBirth" className="text-sm font-medium">
+                              Date of Birth *
                             </Label>
-                            <Input
-                              id="dateOfBirth"
-                              type="date"
-                              value={newPatient.dateOfBirth}
-                              onChange={(e) => setNewPatient({...newPatient, dateOfBirth: e.target.value})}
-                              className="col-span-3"
-                            />
+                            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !newPatient.dateOfBirth && "text-muted-foreground",
+                                    formErrors.dateOfBirth && "border-red-500"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {newPatient.dateOfBirth ? (
+                                    format(newPatient.dateOfBirth, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={newPatient.dateOfBirth}
+                                  onSelect={(date) => {
+                                    handleDateOfBirthChange(date);
+                                    setDatePickerOpen(false);
+                                  }}
+                                  disabled={(date) =>
+                                    date > new Date() || date < new Date("1900-01-01")
+                                  }
+                                  initialFocus
+                                  captionLayout="dropdown"
+                                  fromYear={1900}
+                                  toYear={new Date().getFullYear()}
+                                  className="rounded-md border shadow-lg"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            {formErrors.dateOfBirth && (
+                              <p className="text-sm text-red-500">{formErrors.dateOfBirth}</p>
+                            )}
                           </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="phoneNumber" className="text-right">
-                              Phone Number
+                          <div className="space-y-2">
+                            <Label htmlFor="phoneNumber" className="text-sm font-medium">
+                              Phone Number *
                             </Label>
                             <Input
                               id="phoneNumber"
                               value={newPatient.phoneNumber}
-                              onChange={(e) => setNewPatient({...newPatient, phoneNumber: e.target.value})}
-                              className="col-span-3"
-                              placeholder="Enter phone number"
+                              onChange={(e) => handlePhoneChange(e.target.value)}
+                              placeholder="Enter phone number (e.g., +1 555-123-4567)"
+                              className={cn("w-full", formErrors.phoneNumber && "border-red-500")}
                             />
+                            {formErrors.phoneNumber && (
+                              <p className="text-sm text-red-500">{formErrors.phoneNumber}</p>
+                            )}
                           </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="emailAddress" className="text-right">
-                              Email Address
+                          <div className="space-y-2">
+                            <Label htmlFor="emailAddress" className="text-sm font-medium">
+                              Email Address *
                             </Label>
                             <Input
                               id="emailAddress"
                               type="email"
                               value={newPatient.emailAddress}
-                              onChange={(e) => setNewPatient({...newPatient, emailAddress: e.target.value})}
-                              className="col-span-3"
+                              onChange={(e) => handleEmailChange(e.target.value)}
                               placeholder="Enter email address"
+                              className={cn("w-full", formErrors.emailAddress && "border-red-500")}
                             />
+                            {formErrors.emailAddress && (
+                              <p className="text-sm text-red-500">{formErrors.emailAddress}</p>
+                            )}
                           </div>
                         </div>
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                          <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isCreatingPatient}>
                             Cancel
                           </Button>
-                          <Button onClick={handleCreatePatient}>
-                            Save Patient
+                          <Button onClick={handleCreatePatient} disabled={isCreatingPatient}>
+                            {isCreatingPatient ? (
+                              <>
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                                Creating...
+                              </>
+                            ) : (
+                              "Save Patient"
+                            )}
                           </Button>
                         </div>
                       </DialogContent>
                     </Dialog>
+                  </CommandGroup>
+
+                  {/* Patient list */}
+                  <CommandGroup>
+                    {patientsLoading ? (
+                      <CommandItem disabled>
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                          <span>Loading patients...</span>
+                        </div>
+                      </CommandItem>
+                    ) : patientsError ? (
+                      <CommandItem disabled>
+                        <div className="flex items-center gap-2 text-red-500">
+                          <span>Error loading patients</span>
+                        </div>
+                      </CommandItem>
+                    ) : (
+                      patients.map((patient) => (
+                        <CommandItem
+                          key={`patient-${patient.id}`}
+                          value={`${patient.name}-${patient.id}`}
+                          onSelect={() => {
+                            setSelectedPatient(patient.id.toString());
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedPatient === patient.id.toString() ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">{patient.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {patient.email} • ID: {patient.id}
+                              </div>
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))
+                    )}
                   </CommandGroup>
                 </CommandList>
               </Command>

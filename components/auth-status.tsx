@@ -15,7 +15,8 @@ export default function AuthStatus() {
 
   return (
     <div className="text-sm text-green-600">
-      Authenticated as: {user?.email || "User"}
+   Hello, {`${user?.title || ""} ${user?.firstName || ""} ${user?.lastName || ""}`.trim()}
+
     </div>
   );
 }

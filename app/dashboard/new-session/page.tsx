@@ -111,7 +111,7 @@ export default function NewSessionPage() {
         </Tabs>
       </div>
 
-      <Footer />
+      {/* <Footer /> */}
       <WarningBar />
     </div>
   );
