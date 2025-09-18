@@ -1,22 +1,22 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import React, { useState, useCallback, useRef } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import Header from './_components/Header';
-import NoteTab from './_components/NoteTab';
-import TranscriptTab from './_components/TranscriptTab';
-import ContextTab from './_components/ContextTab';
-import Footer from './_components/Footer';
-import WarningBar from './_components/WarningBar';
-import { TranscriptView } from './_components/transcript-view';
+import Header from "./_components/Header";
+import NoteTab from "./_components/NoteTab";
+import TranscriptTab from "./_components/TranscriptTab";
+import ContextTab from "./_components/ContextTab";
+import Footer from "./_components/Footer";
+import WarningBar from "./_components/WarningBar";
+import { TranscriptView } from "./_components/transcript-view";
 
 export default function NewSessionPage() {
   const [transcriptData, setTranscriptData] = useState({
-    transcript: '',
+    transcript: "",
     isRecording: false,
     isPaused: false,
-    currentTime: '0:00',
+    currentTime: "0:00",
     error: null as string | null | undefined
   } as {
     transcript: string;
@@ -25,71 +25,67 @@ export default function NewSessionPage() {
     currentTime: string;
     error?: string | null;
   });
-  
+
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
 
-  const handleTranscriptUpdate = useCallback((data: typeof transcriptData) => {
-    setTranscriptData(data);
-    // Track when recording has been started at least once
-    if (data.isRecording && !hasStartedRecording) {
-      setHasStartedRecording(true);
-    }
-  }, [hasStartedRecording]);
+  const handleTranscriptUpdate = useCallback(
+    (data: typeof transcriptData) => {
+      setTranscriptData(data);
+      // Track when recording has been started at least once
+      if (data.isRecording && !hasStartedRecording) {
+        setHasStartedRecording(true);
+      }
+    },
+    [hasStartedRecording]
+  );
 
   const handleStartNewRecording = useCallback(() => {
     setTranscriptData({
-      transcript: '',
+      transcript: "",
       isRecording: false,
       isPaused: false,
-      currentTime: '0:00',
+      currentTime: "0:00",
       error: null
     });
     setHasStartedRecording(false);
   }, []);
 
-
   return (
     <div className="h-full bg-slate-50">
       {/* Header */}
-     
-
-      <Separator />
 
       <Header onTranscriptUpdate={handleTranscriptUpdate} />
 
       {/* Main Content */}
       <div className="bg-slate-50">
         <Tabs defaultValue="note">
-          <div className="bg-white border-b">
-            <TabsList className="w-full justify-start bg-transparent px-6 py-0 h-10">
+          <div className="border-b bg-white">
+            <TabsList className="h-10 w-full justify-start bg-transparent px-6 py-0">
               <TabsTrigger
                 value="transcript"
-                className="data-[state=active]:bg-slate-100 data-[state=active]:border-b-2 data-[state=active]:border-slate-500 rounded-none text-sm"
-              >
+                className="rounded-none text-sm data-[state=active]:border-b-2 data-[state=active]:border-slate-500 data-[state=active]:bg-slate-100">
                 Transcript
               </TabsTrigger>
               <TabsTrigger
                 value="context"
-                className="data-[state=active]:bg-slate-100 data-[state=active]:border-b-2 data-[state=active]:border-slate-500 rounded-none text-sm"
-              >
+                className="rounded-none text-sm data-[state=active]:border-b-2 data-[state=active]:border-slate-500 data-[state=active]:bg-slate-100">
                 Context
               </TabsTrigger>
               <TabsTrigger
                 value="note"
-                className="data-[state=active]:bg-slate-100 data-[state=active]:border-b-2 data-[state=active]:border-slate-500 rounded-none text-sm"
-              >
+                className="rounded-none text-sm data-[state=active]:border-b-2 data-[state=active]:border-slate-500 data-[state=active]:bg-slate-100">
                 Note
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="note" className="py-8 px-4 m-0">
+          <TabsContent value="note" className="m-0 px-4 py-8">
             <NoteTab />
           </TabsContent>
 
-          <TabsContent value="transcript" className="py-8 px-4 m-0">
+          <TabsContent value="transcript" className="m-0 px-4 py-8">
             {transcriptData.isRecording || transcriptData.transcript || hasStartedRecording ? (
-              <TranscriptView 
+              <TranscriptView
                 transcript={transcriptData.transcript}
                 isRecording={transcriptData.isRecording}
                 isPaused={transcriptData.isPaused}
@@ -102,7 +98,7 @@ export default function NewSessionPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="context" className="py-8 px-4 m-0">
+          <TabsContent value="context" className="m-0 px-4 py-8">
             <ContextTab />
           </TabsContent>
         </Tabs>
