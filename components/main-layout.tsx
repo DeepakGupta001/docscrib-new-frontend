@@ -12,7 +12,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <Sidebar />
         <div className="flex flex-col h-screen w-full lg:ps-[--sidebar-width]">
           <Header />
-          <main className={cn("flex-1")}>{children}</main>
+          <main className={cn("flex-1 p-4")}>{children}</main>
           <Footer />
         </div>
       </div>
