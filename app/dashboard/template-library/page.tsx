@@ -1,6 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { templateApi } from "@/lib/api"
+import { toast } from "@/components/ui/use-toast"
+import { useDebounce } from "@/lib/hooks/use-debounce"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,22 +42,107 @@ export default function TemplatesPage() {
   const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false)
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null)
   const [templateToChangeVisibility, setTemplateToChangeVisibility] = useState<Template | null>(null)
+  const [generatedTemplate, setGeneratedTemplate] = useState<{
+    name: string
+    content: string
+    type: string
+    description?: string
+  } | undefined>(undefined)
   
   console.log("Modal states:", { isVisibilityModalOpen, templateToChangeVisibility })
   const [uploadedPdfFile, setUploadedPdfFile] = useState<File | null>(null)
-  const [templates, setTemplates] = useState<Template[]>([
-    { name: "Accident and Emergency Nurse's note", type: "Note", uses: 0, lastUsed: "-", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "ED admission note", type: "Document", uses: 0, lastUsed: "-", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "ED discharge summary", type: "Document", uses: 0, lastUsed: "-", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "H & P", type: "Note", uses: 12, lastUsed: "Sep 15, 2025", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "H & P (Issues)", type: "Note", uses: 5, lastUsed: "Sep 10, 2025", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "Issues List", type: "Note", uses: 8, lastUsed: "Sep 12, 2025", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "Patient explainer letter", type: "Document", uses: 3, lastUsed: "-", creator: "Heidi", visibility: "Just me", favorite: true },
-    { name: "Referral letter", type: "Document", uses: 7, lastUsed: "-", creator: "Heidi", visibility: "Just me", favorite: true },
-    { name: "EDIT OoPdfFormExample", type: "PDF", uses: 2, lastUsed: "17/09/2025", creator: "Heidi", visibility: "Just me", favorite: true },
-    { name: "SMART goals", type: "Document", uses: 9, lastUsed: "Sep 14, 2025", creator: "Heidi", visibility: "Just me", favorite: false },
-    { name: "SOAP", type: "Note", uses: 15, lastUsed: "Sep 16, 2025", creator: "Heidi", visibility: "Just me", favorite: false },
-  ])
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [favoriteTemplates, setFavoriteTemplates] = useState<Template[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedVisibility, setSelectedVisibility] = useState<string>("all")
+
+  // Use debounce hook for search query
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+
+  // Load templates when filters change (only affects data table)
+  useEffect(() => {
+    loadTemplates()
+  }, [debouncedSearchQuery, selectedType, selectedVisibility])
+
+  // Load templates and favorites on component mount
+  useEffect(() => {
+    loadTemplates()
+    loadFavoriteTemplates()
+  }, [])
+
+  const loadTemplates = async () => {
+    try {
+      setIsLoading(true)
+      const params: any = {}
+      
+      if (debouncedSearchQuery) params.query = debouncedSearchQuery
+      if (selectedType !== "all") params.type = selectedType
+      if (selectedVisibility !== "all") params.visibility = selectedVisibility
+      
+      const response = await templateApi.getTemplates(params)
+      
+      if (response.success) {
+        // Transform API response to match Template interface
+        const transformedTemplates = response.data.map((template: any) => ({
+          id: template.id,
+          name: template.name,
+          type: template.type === 'note' ? 'Note' : template.type === 'document' ? 'Document' : 'PDF',
+          uses: template.uses,
+          lastUsed: template.lastUsed ? new Date(template.lastUsed).toLocaleDateString() : "-",
+          creator: template.creator,
+          visibility: template.visibility === 'only-me' ? 'Just me' : template.visibility === 'team' ? 'Team' : 'Public',
+          favorite: template.isFavorite,
+          content: template.content,
+          pdfUrl: template.pdfUrl,
+          isDefault: template.isDefault,
+          highlightContribution: template.highlightContribution
+        }))
+        setTemplates(transformedTemplates)
+      } else {
+        toast.error("Failed to load templates", {
+          description: response.error || "Please try again later"
+        })
+      }
+    } catch (error) {
+      console.error("Error loading templates:", error)
+      toast.error("Failed to load templates", {
+        description: "Please try again later"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadFavoriteTemplates = async () => {
+    try {
+      const response = await templateApi.getFavoriteTemplates()
+      
+      if (response.success) {
+        // Transform API response to match Template interface
+        const transformedFavorites = response.data.map((template: any) => ({
+          id: template.id,
+          name: template.name,
+          type: template.type === 'note' ? 'Note' : template.type === 'document' ? 'Document' : 'PDF',
+          uses: template.uses,
+          lastUsed: template.lastUsed ? new Date(template.lastUsed).toLocaleDateString() : "-",
+          creator: template.creator,
+          visibility: template.visibility === 'only-me' ? 'Just me' : template.visibility === 'team' ? 'Team' : 'Public',
+          favorite: template.isFavorite,
+          content: template.content,
+          pdfUrl: template.pdfUrl,
+          isDefault: template.isDefault,
+          highlightContribution: template.highlightContribution
+        }))
+        setFavoriteTemplates(transformedFavorites)
+      } else {
+        console.error("Failed to load favorite templates:", response.error)
+      }
+    } catch (error) {
+      console.error("Error loading favorite templates:", error)
+    }
+  }
   
   const handleCreateTemplate = (type: "note" | "pdf") => {
     if (type === "note") {
@@ -75,26 +163,85 @@ export default function TemplatesPage() {
     setIsEditorModalOpen(true)
   }
 
-  const handleTemplateSave = (templateData: {
+  const handleGeneratedTemplate = (generatedTemplate: {
     name: string
     content: string
-    visibility: "only-me" | "team" | "public"
-    type: "note" | "document"
-    isDefault: boolean
+    type: string
+    description?: string
   }) => {
-    console.log("Saving template:", templateData)
-    // Add your template save logic here
+    console.log("Generated template received:", generatedTemplate)
+    setGeneratedTemplate(generatedTemplate)
+    // Close form modal and open editor modal
+    setIsFormModalOpen(false)
+    setIsEditorModalOpen(true)
   }
 
-  const handleTemplateSaveForLater = (templateData: {
+  const handleTemplateSave = async (templateData: {
     name: string
     content: string
     visibility: "only-me" | "team" | "public"
     type: "note" | "document"
     isDefault: boolean
   }) => {
-    console.log("Saving template for later:", templateData)
-    // Add your template save for later logic here
+    try {
+      const response = await templateApi.createTemplate({
+        name: templateData.name,
+        type: templateData.type,
+        content: templateData.content,
+        visibility: templateData.visibility === 'public' ? 'community' : templateData.visibility,
+        isDefault: templateData.isDefault
+      })
+
+      if (response.success) {
+        toast.success("Template created successfully!")
+        setIsEditorModalOpen(false)
+        loadTemplates() // Reload templates
+        loadFavoriteTemplates() // Reload favorites in case it's marked as favorite
+      } else {
+        toast.error("Failed to create template", {
+          description: response.error || "Please try again"
+        })
+      }
+    } catch (error) {
+      console.error("Error creating template:", error)
+      toast.error("Failed to create template", {
+        description: "Please try again later"
+      })
+    }
+  }
+
+  const handleTemplateSaveForLater = async (templateData: {
+    name: string
+    content: string
+    visibility: "only-me" | "team" | "public"
+    type: "note" | "document"
+    isDefault: boolean
+  }) => {
+    try {
+      const response = await templateApi.createTemplate({
+        name: templateData.name,
+        type: templateData.type,
+        content: templateData.content,
+        visibility: templateData.visibility === 'public' ? 'community' : templateData.visibility,
+        isDefault: templateData.isDefault
+      })
+
+      if (response.success) {
+        toast.success("Template saved successfully!")
+        setIsEditorModalOpen(false)
+        loadTemplates() // Reload templates
+        loadFavoriteTemplates() // Reload favorites in case favorite status changed
+      } else {
+        toast.error("Failed to save template", {
+          description: response.error || "Please try again"
+        })
+      }
+    } catch (error) {
+      console.error("Error saving template:", error)
+      toast.error("Failed to save template", {
+        description: "Please try again later"
+      })
+    }
   }
 
   const handleBackToTypeSelection = () => {
@@ -115,14 +262,40 @@ export default function TemplatesPage() {
     setIsCreateModalOpen(true)
   }
 
-  const handlePdfTemplateSave = (templateData: {
+  const handlePdfTemplateSave = async (templateData: {
     name: string
     visibility: "only-me" | "team" | "public"
   }) => {
-    console.log("Saving PDF template:", templateData)
-    // Add your PDF template save logic here
+    try {
+      if (!uploadedPdfFile) {
+        toast.error("No PDF file to upload")
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('pdf', uploadedPdfFile)
+      formData.append('name', templateData.name)
+      formData.append('visibility', templateData.visibility)
+
+      const response = await templateApi.uploadPdfTemplate(formData)
+
+      if (response.success) {
+        toast.success("PDF template created successfully!")
     setIsPdfEditorModalOpen(false)
     setUploadedPdfFile(null)
+        loadTemplates() // Reload templates
+        loadFavoriteTemplates() // Reload favorites in case it's marked as favorite
+      } else {
+        toast.error("Failed to create PDF template", {
+          description: response.error || "Please try again"
+        })
+      }
+    } catch (error) {
+      console.error("Error creating PDF template:", error)
+      toast.error("Failed to create PDF template", {
+        description: "Please try again later"
+      })
+    }
   }
 
   const handleBackToPdfUpload = () => {
@@ -141,16 +314,90 @@ export default function TemplatesPage() {
     setIsSelectTemplateModalOpen(false)
   }
 
+  const handleTemplateModalClose = () => {
+    setIsSelectTemplateModalOpen(false)
+  }
+
+  const handleFavoriteToggle = () => {
+    // This is called from select template modal when favorites are toggled
+    // We need to refresh to get the updated favorite status
+    loadTemplates()
+    loadFavoriteTemplates()
+  }
+
+  const handleRemoveFromFavorites = async (template: Template) => {
+    try {
+      if (!template.id) {
+        toast.error("Template ID not found")
+        return
+      }
+
+      const response = await templateApi.toggleFavorite(template.id, false)
+
+      if (response.success) {
+        toast.success("Removed from favorites")
+        
+        // Update only the specific template in local state instead of reloading everything
+        setTemplates(prevTemplates => 
+          prevTemplates.map(t => 
+            t.id === template.id 
+              ? { ...t, favorite: false }
+              : t
+          )
+        )
+        
+        // Remove from favorite templates state
+        setFavoriteTemplates(prevFavorites => 
+          prevFavorites.filter(t => t.id !== template.id)
+        )
+      } else {
+        toast.error("Failed to remove from favorites", {
+          description: response.error || "Please try again"
+        })
+      }
+    } catch (error) {
+      console.error("Error removing from favorites:", error)
+      toast.error("Failed to remove from favorites", {
+        description: "Please try again later"
+      })
+    }
+  }
+
   const handleDeleteTemplate = (templateName: string) => {
     setTemplateToDelete(templateName)
     setIsDeleteDialogOpen(true)
   }
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (templateToDelete) {
-      console.log("Deleting template:", templateToDelete)
-      // Add your delete logic here
+      try {
+        // Find the template ID from the template name
+        const template = templates.find(t => t.name === templateToDelete)
+        if (!template || !template.id) {
+          toast.error("Template not found")
+          return
+        }
+
+        const response = await templateApi.deleteTemplate(template.id)
+
+        if (response.success) {
+          toast.success("Template deleted successfully!")
+          loadTemplates() // Reload templates
+          loadFavoriteTemplates() // Reload favorites in case deleted template was in favorites
+        } else {
+          toast.error("Failed to delete template", {
+            description: response.error || "Please try again"
+          })
+        }
+      } catch (error) {
+        console.error("Error deleting template:", error)
+        toast.error("Failed to delete template", {
+          description: "Please try again later"
+        })
+      } finally {
       setTemplateToDelete(null)
+        setIsDeleteDialogOpen(false)
+      }
     }
   }
 
@@ -168,16 +415,37 @@ export default function TemplatesPage() {
     }
   }
 
-  const handleFavoriteTemplate = (template: Template) => {
-    console.log("Toggle favorite:", template)
-    // Toggle favorite status in the templates array
-    setTemplates(prevTemplates => 
-      prevTemplates.map(t => 
-        t.name === template.name 
-          ? { ...t, favorite: !t.favorite }
-          : t
-      )
-    )
+  const handleFavoriteTemplate = async (template: Template) => {
+    try {
+      if (!template.id) {
+        toast.error("Template ID not found")
+        return
+      }
+
+      const response = await templateApi.toggleFavorite(template.id, !template.favorite)
+
+      if (response.success) {
+        toast.success(template.favorite ? "Removed from favorites" : "Added to favorites")
+        
+        // Update only the specific template in local state instead of reloading everything
+        setTemplates(prevTemplates => 
+          prevTemplates.map(t => 
+            t.id === template.id 
+              ? { ...t, favorite: !t.favorite }
+              : t
+          )
+        )
+      } else {
+        toast.error("Failed to update favorite status", {
+          description: response.error || "Please try again"
+        })
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error)
+      toast.error("Failed to update favorite status", {
+        description: "Please try again later"
+      })
+    }
   }
 
   const handleDeleteTemplateFromTable = (template: Template) => {
@@ -217,21 +485,31 @@ export default function TemplatesPage() {
     }
   }
 
-  const handleVisibilitySave = (visibility: "only-me" | "team" | "community", highlightContribution?: boolean) => {
-    if (templateToChangeVisibility) {
-      setTemplates(prevTemplates =>
-        prevTemplates.map(t =>
-          t.name === templateToChangeVisibility.name
-            ? { 
-                ...t, 
-                visibility: visibility === "only-me" ? "Just me" : 
-                          visibility === "team" ? "Team" : "Community"
-              }
-            : t
-        )
-      )
+  const handleVisibilitySave = async (visibility: "only-me" | "team" | "community", highlightContribution?: boolean) => {
+    if (templateToChangeVisibility && templateToChangeVisibility.id) {
+      try {
+        const response = await templateApi.updateTemplateVisibility(templateToChangeVisibility.id, {
+          visibility,
+          highlightContribution
+        })
+
+        if (response.success) {
+          toast.success("Visibility updated successfully!")
+          loadTemplates() // Reload templates to get updated data
+          loadFavoriteTemplates() // Reload favorites to get updated data
+        } else {
+          toast.error("Failed to update visibility", {
+            description: response.error || "Please try again"
+          })
+        }
+      } catch (error) {
+        console.error("Error updating visibility:", error)
+        toast.error("Failed to update visibility", {
+          description: "Please try again later"
+        })
+      }
     }
-    console.log("Visibility saved:", { visibility, highlightContribution })
+    
     setIsVisibilityModalOpen(false)
     setTemplateToChangeVisibility(null)
   }
@@ -277,7 +555,7 @@ export default function TemplatesPage() {
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Favourites</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {templates.filter(t => t.favorite).map((t, i) => (
+          {favoriteTemplates.map((t, i) => (
             <Card key={i} className="group cursor-pointer hover:shadow-md transition-shadow bg-white border border-gray-200">
               <CardHeader className="pb-1 px-3 pt-3">
                 <div className="flex items-center justify-between">
@@ -292,6 +570,11 @@ export default function TemplatesPage() {
                       <DropdownMenuItem>Edit</DropdownMenuItem>
                       <DropdownMenuItem>Duplicate</DropdownMenuItem>
                       <DropdownMenuItem>Rename</DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleRemoveFromFavorites(t)}
+                      >
+                        Remove from favorites
+                      </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="text-destructive"
                         onClick={() => handleDeleteTemplate(t.name)}
@@ -326,16 +609,56 @@ export default function TemplatesPage() {
 
       <Separator />
 
+      {/* Search and Filters */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="all">All Types</option>
+              <option value="note">Notes</option>
+              <option value="document">Documents</option>
+              <option value="pdf">PDFs</option>
+            </select>
+            <select
+              value={selectedVisibility}
+              onChange={(e) => setSelectedVisibility(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="all">All Visibility</option>
+              <option value="only-me">Only Me</option>
+              <option value="team">Team</option>
+              <option value="community">Community</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Library */}
       <div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Loading templates...</div>
+          </div>
+        ) : (
         <DataTable 
           columns={columns} 
           data={templates} 
-          searchKey="name"
-          searchPlaceholder="Search for a template"
           creatorFilterKey="creator"
           dateFilterKey="lastUsed"
         />
+        )}
         </div>
 
       {/* Create Template Modal */}
@@ -351,14 +674,19 @@ export default function TemplatesPage() {
         onClose={() => setIsFormModalOpen(false)}
         onBack={handleBackToTypeSelection}
         onTemplateCreate={handleTemplateFormCreate}
+        onGeneratedTemplate={handleGeneratedTemplate}
       />
 
       {/* Template Editor Modal */}
       <TemplateEditorModal
         isOpen={isEditorModalOpen}
-        onClose={() => setIsEditorModalOpen(false)}
+        onClose={() => {
+          setIsEditorModalOpen(false)
+          setGeneratedTemplate(undefined) // Clear generated template when closing
+        }}
         onSave={handleTemplateSave}
         onSaveForLater={handleTemplateSaveForLater}
+        generatedTemplate={generatedTemplate}
       />
 
       {/* PDF Form Modal */}
@@ -383,8 +711,9 @@ export default function TemplatesPage() {
       {/* Select Template Modal */}
       <SelectTemplateModal
         isOpen={isSelectTemplateModalOpen}
-        onClose={() => setIsSelectTemplateModalOpen(false)}
+        onClose={handleTemplateModalClose}
         onTemplateSelect={handleTemplateSelect}
+        onFavoriteToggle={handleFavoriteToggle}
       />
 
       {/* Delete Template Dialog */}

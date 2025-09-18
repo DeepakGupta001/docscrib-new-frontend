@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { templateApi } from "@/lib/api"
+import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,27 +18,64 @@ interface TemplateFormModalProps {
   onClose: () => void
   onBack: () => void
   onTemplateCreate: (templateData: { instructions: string; source: "existing" | "blank" }) => void
+  onGeneratedTemplate: (generatedTemplate: {
+    name: string;
+    content: string;
+    type: string;
+    description?: string;
+  }) => void
 }
 
 export function TemplateFormModal({ 
   isOpen, 
   onClose, 
   onBack,
-  onTemplateCreate 
+  onTemplateCreate,
+  onGeneratedTemplate
 }: TemplateFormModalProps) {
   const [instructions, setInstructions] = useState("")
   const [selectedSource, setSelectedSource] = useState<"existing" | "blank" | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (selectedSource || instructions.trim()) {
-      onTemplateCreate({
-        instructions,
-        source: selectedSource || "blank" // Default to blank if no source selected
-      })
-      // Reset form
-      setInstructions("")
-      setSelectedSource(null)
-      onClose()
+      try {
+        setIsGenerating(true)
+        
+        // Call AI generation API
+        const response = await templateApi.generateTemplate({
+          instructions: instructions.trim() || "Create a medical template",
+          source: selectedSource || "blank"
+        })
+
+        if (response.success) {
+          // Pass the generated template to the editor
+          onGeneratedTemplate({
+            name: response.data.name,
+            content: response.data.content,
+            type: response.data.type,
+            description: response.data.description
+          })
+          
+          toast.success("Template generated successfully!")
+          
+          // Reset form
+          setInstructions("")
+          setSelectedSource(null)
+          onClose()
+        } else {
+          toast.error("Failed to generate template", {
+            description: response.error || "Please try again"
+          })
+        }
+      } catch (error) {
+        console.error("Error generating template:", error)
+        toast.error("Failed to generate template", {
+          description: "Please try again later"
+        })
+      } finally {
+        setIsGenerating(false)
+      }
     }
   }
 
@@ -144,9 +183,9 @@ export function TemplateFormModal({
           </Button>
           <Button 
             onClick={handleCreate}
-            disabled={!selectedSource && !instructions.trim()}
+            disabled={(!selectedSource && !instructions.trim()) || isGenerating}
           >
-            Create Template
+            {isGenerating ? "Generating..." : "Create Template"}
           </Button>
         </div>
       </DialogContent>

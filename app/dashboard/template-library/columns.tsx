@@ -12,6 +12,7 @@ import {
 import { MoreHorizontal, Pencil, Star } from "lucide-react"
 
 export type Template = {
+  id?: number
   name: string
   type: string
   uses: number
@@ -19,6 +20,10 @@ export type Template = {
   creator: string
   visibility: string
   favorite: boolean
+  content?: string
+  pdfUrl?: string
+  isDefault?: boolean
+  highlightContribution?: boolean
 }
 
 interface ColumnsProps {

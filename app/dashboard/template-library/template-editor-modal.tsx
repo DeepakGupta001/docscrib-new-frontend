@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -67,51 +67,39 @@ interface TemplateEditorModalProps {
     type: "note" | "document"
     isDefault: boolean
   }) => void
+  generatedTemplate?: {
+    name: string
+    content: string
+    type: string
+    description?: string
+  }
 }
 
 export function TemplateEditorModal({
   isOpen,
   onClose,
   onSave,
-  onSaveForLater
+  onSaveForLater,
+  generatedTemplate
 }: TemplateEditorModalProps) {
-  // Template Editor Modal Component
-  const [templateName, setTemplateName] = useState("Untitled template")
-  const [templateContent, setTemplateContent] = useState(`Patient Details:
-- Name: [Patient's full name]
-- Age: [Patient's age]
-- Gender: [Patient's gender]
-- Date of Birth: [Patient's DOB]
-
-Assessment:
-- Chief Complaint: [Primary reason for visit]
-- History of Present Illness: [Detailed description of current symptoms]
-- Past Medical History: [Relevant medical history]
-- Medications: [Current medications]
-- Allergies: [Known allergies]
-
-Plan:
-- Diagnosis: [Primary diagnosis]
-- Treatment Plan: [Specific treatment recommendations]
-- Follow-up: [Follow-up instructions]
-
-Interventions:
-- [List any procedures or treatments performed]
-- [Document any medications prescribed]
-
-Evaluation:
-- [Patient response to treatment]
-- [Any complications or concerns]
-
-Continuing Care:
-- [Instructions for ongoing care]
-- [When to return for follow-up]`)
+  // Initialize state with generated template if provided, otherwise use defaults
+  const [templateName, setTemplateName] = useState(generatedTemplate?.name || "Untitled template")
+  const [templateContent, setTemplateContent] = useState(generatedTemplate?.content || "")
 
   const [visibility, setVisibility] = useState<"only-me" | "team" | "public">("only-me")
-  const [type, setType] = useState<"note" | "document">("note")
+  const [type, setType] = useState<"note" | "document">(generatedTemplate?.type === "note" ? "note" : "document")
   const [isDefault, setIsDefault] = useState(false)
   const [isHelperOpen, setIsHelperOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("content")
+
+  // Update state when generatedTemplate prop changes
+  useEffect(() => {
+    if (generatedTemplate) {
+      setTemplateName(generatedTemplate.name)
+      setTemplateContent(generatedTemplate.content)
+      setType(generatedTemplate.type === "note" ? "note" : "document")
+    }
+  }, [generatedTemplate])
 
   const handleSave = () => {
     onSave({

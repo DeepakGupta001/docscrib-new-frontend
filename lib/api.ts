@@ -115,3 +115,179 @@ export const authApi = {
     return response.json();
   }
 };
+
+// Template Library API functions
+export const templateApi = {
+  // Get all templates with optional filtering and pagination
+  async getTemplates(params?: {
+    query?: string;
+    type?: 'note' | 'document' | 'pdf';
+    visibility?: 'only-me' | 'team' | 'community';
+    isFavorite?: boolean;
+    creator?: string;
+    sortBy?: 'name' | 'type' | 'uses' | 'lastUsed' | 'creator' | 'createdAt' | 'updatedAt';
+    sortOrder?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    minUses?: number;
+    maxUses?: number;
+    isDefault?: boolean;
+    highlightContribution?: boolean;
+  }) {
+    const searchParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = `/api/templates${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    const response = await apiRequest("GET", url);
+    return response.json();
+  },
+
+  // Get favorite templates
+  async getFavoriteTemplates() {
+    const response = await apiRequest("GET", "/api/templates/favorites");
+    return response.json();
+  },
+
+  // Get specific template by ID
+  async getTemplate(id: number) {
+    const response = await apiRequest("GET", `/api/templates/${id}`);
+    return response.json();
+  },
+
+  // Create a new template
+  async createTemplate(data: {
+    name: string;
+    type: 'note' | 'document';
+    content: string;
+    visibility?: 'only-me' | 'team' | 'community';
+    isDefault?: boolean;
+    highlightContribution?: boolean;
+    metadata?: any;
+  }) {
+    const response = await apiRequest("POST", "/api/templates", data);
+    return response.json();
+  },
+
+  // Upload PDF template
+  async uploadPdfTemplate(formData: FormData) {
+    const response = await apiRequest("POST", "/api/templates/pdf", formData);
+    return response.json();
+  },
+
+  // Update template
+  async updateTemplate(id: number, data: {
+    name?: string;
+    content?: string;
+    visibility?: 'only-me' | 'team' | 'community';
+    isDefault?: boolean;
+    metadata?: any;
+  }) {
+    const response = await apiRequest("PUT", `/api/templates/${id}`, data);
+    return response.json();
+  },
+
+  // Update template visibility
+  async updateTemplateVisibility(id: number, data: {
+    visibility: 'only-me' | 'team' | 'community';
+    highlightContribution?: boolean;
+  }) {
+    const response = await apiRequest("PATCH", `/api/templates/${id}/visibility`, data);
+    return response.json();
+  },
+
+  // Toggle template favorite status
+  async toggleFavorite(id: number, isFavorite: boolean) {
+    const response = await apiRequest("PATCH", `/api/templates/${id}/favorite`, { isFavorite });
+    return response.json();
+  },
+
+  // Track template usage
+  async trackUsage(id: number, context?: string, metadata?: any) {
+    const response = await apiRequest("POST", `/api/templates/${id}/use`, {
+      context,
+      metadata
+    });
+    return response.json();
+  },
+
+  // Delete template
+  async deleteTemplate(id: number) {
+    const response = await apiRequest("DELETE", `/api/templates/${id}`);
+    return response.json();
+  },
+
+  // Advanced search with statistics
+  async advancedSearch(params?: {
+    query?: string;
+    type?: 'note' | 'document' | 'pdf';
+    visibility?: 'only-me' | 'team' | 'community';
+    isFavorite?: boolean;
+    creator?: string;
+    sortBy?: 'name' | 'type' | 'uses' | 'lastUsed' | 'creator' | 'createdAt' | 'updatedAt';
+    sortOrder?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    minUses?: number;
+    maxUses?: number;
+    isDefault?: boolean;
+    highlightContribution?: boolean;
+    includeStats?: boolean;
+  }) {
+    const searchParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = `/api/templates/search/advanced${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    const response = await apiRequest("GET", url);
+    return response.json();
+  },
+
+  // Get community templates
+  async getCommunityTemplates(params?: {
+    query?: string;
+    type?: 'note' | 'document' | 'pdf';
+    creator?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = `/api/templates/community${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    const response = await apiRequest("GET", url);
+    return response.json();
+  },
+
+  // Generate AI template
+  async generateTemplate(data: {
+    instructions: string;
+    source?: "existing" | "blank";
+  }) {
+    const response = await apiRequest("POST", "/api/templates/generate", data);
+    return response.json();
+  }
+};
