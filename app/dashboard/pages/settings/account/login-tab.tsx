@@ -80,10 +80,12 @@ export function LoginTab() {
               </p>
             </div>
 
-            <Button variant="default" className="gap-2 w-fit">
-              <Shield className="h-4 w-4" />
-              Enable MFA
-            </Button>
+            <div className="flex justify-end">
+              <Button variant="default" className="gap-2">
+                <Shield className="h-4 w-4" />
+                Enable MFA
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
