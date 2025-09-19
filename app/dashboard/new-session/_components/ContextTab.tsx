@@ -3,14 +3,12 @@ import { Settings } from 'lucide-react';
 
 export default function ContextTab() {
   return (
-    <div className="text-center space-y-4 max-w-md mx-auto">
-      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-        <Settings className="h-6 w-6 text-slate-400" />
-      </div>
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium text-slate-700">Context information</h3>
-        <p className="text-slate-500">Patient context and session details will appear here</p>
-      </div>
+     <div className="h-full w-full m-0">
+      <textarea
+       rows={15} 
+        className="h-full w-full rounded-md border border-slate-300 p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Add any additional context about the patient past conversations, medical history, or specific details you want to highlight."
+      />
     </div>
   );
 }
