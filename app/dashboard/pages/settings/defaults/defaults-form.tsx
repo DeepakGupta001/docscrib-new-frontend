@@ -91,7 +91,7 @@ export function DefaultsForm() {
                       <FormItem>
                         <FormLabel className="text-sm font-medium">Default input language</FormLabel>
                         <FormDescription className="text-xs">
-                          Heidi can listen for up to 3 languages when transcribing
+                          Docscrib can listen for up to 3 languages when transcribing
                         </FormDescription>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
@@ -466,7 +466,7 @@ export function DefaultsForm() {
                     <div className="space-y-0.5 max-w-[75%]">
                       <FormLabel className="text-base">Automatically create tasks</FormLabel>
                       <FormDescription className="text-sm">
-                        When enabled, Heidi will identify and generate tasks from your sessions.
+                        When enabled, Docscrib will identify and generate tasks from your sessions.
                       </FormDescription>
                     </div>
                     <FormControl>

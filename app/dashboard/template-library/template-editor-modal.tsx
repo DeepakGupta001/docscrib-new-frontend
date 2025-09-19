@@ -352,7 +352,7 @@ export function TemplateEditorModal({
                       Placeholders
                     </h4>
                     <p className="text-xs text-slate-600 mb-3 leading-relaxed">
-                      Use [ ] for areas Heidi will fill in.
+                      Use [ ] for areas Docscrib will fill in.
                     </p>
                     <div className="p-2 bg-slate-50 rounded text-xs font-mono border">
                       e.g. [Patient's medical history]

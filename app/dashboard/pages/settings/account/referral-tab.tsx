@@ -11,12 +11,12 @@ export function ReferralTab() {
           Referral Program
         </CardTitle>
         <CardDescription>
-          Share Heidi with your network and earn rewards
+          Share Docscrib with your network and earn rewards
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Refer your network and help them discover Heidi's powerful features.
+          Refer your network and help them discover Docscrib's powerful features.
         </p>
         <p className="text-sm text-muted-foreground">
           Earn $10 per sign up and $40 per paid user. T&Cs apply.

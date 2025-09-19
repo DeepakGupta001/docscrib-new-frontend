@@ -52,7 +52,7 @@ export function VisibilityChangeModal({
     {
       value: "community",
       label: "Community",
-      description: "Allow other Heidi users to use your template. Personal information like phone numbers, addresses, and names will be removed.",
+      description: "Allow other Docscrib users to use your template. Personal information like phone numbers, addresses, and names will be removed.",
       icon: Globe
     },
     {

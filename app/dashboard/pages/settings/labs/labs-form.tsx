@@ -37,7 +37,7 @@ export function LabsForm() {
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Heidi Labs Section */}
+          {/* Docscrib Labs Section */}
           <Card>
             <CardHeader>
               <CardTitle>DocScrib Labs</CardTitle>
@@ -47,7 +47,7 @@ export function LabsForm() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-sm text-muted-foreground">
-                Get early access to upcoming features and help shape the future of Heidi.
+                Get early access to upcoming features and help shape the future of Docscrib.
               </div>
 
               <FormField
@@ -77,7 +77,7 @@ export function LabsForm() {
                 <Button type="button" variant="outline" className="flex items-center gap-2" asChild>
                   <Link href="/learn-more-heidi-labs">
                     <ExternalLink className="h-4 w-4" />
-                    Learn more about Heidi Labs
+                    Learn more about Docscrib Labs
                   </Link>
                 </Button>
 

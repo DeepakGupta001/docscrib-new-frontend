@@ -54,7 +54,7 @@ export function LoginTab() {
                 className="mt-4"
               />
               <p className="text-sm text-muted-foreground mt-2">
-                Your email address cannot be changed on Heidi. To change your
+                Your email address cannot be changed on Docscrib. To change your
                 password, select reset password on login.
               </p>
             </div>

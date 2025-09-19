@@ -235,16 +235,6 @@ export function AccountForm() {
         <p className="text-muted-foreground">
           Manage your account settings and preferences
         </p>
-        <p className="text-sm text-muted-foreground">
-          By using Heidi you acknowledge and agree to abide by the{" "}
-          <Link href="#" className="text-primary hover:underline">
-            Usage Policy
-          </Link>{" "}
-          and{" "}
-          <Link href="#" className="text-primary hover:underline">
-            Terms of Use
-          </Link>
-        </p>
       </div>
 
       <Separator />
@@ -254,7 +244,7 @@ export function AccountForm() {
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="login">Login & Security</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          <TabsTrigger value="referral">Referral</TabsTrigger>
+          <TabsTrigger value="referral" disabled>Referral</TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal" className="space-y-6">
