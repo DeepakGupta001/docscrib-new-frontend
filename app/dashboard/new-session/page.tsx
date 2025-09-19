@@ -71,14 +71,13 @@ export default function NewSessionPage() {
   return (
     <div className="h-full bg-slate-50">
       {/* Header */}
-      <WarningBar />
       <Header onTranscriptUpdate={handleTranscriptUpdate} />
 
       {/* Main Content */}
       <div className="bg-slate-50">
         <Tabs defaultValue="transcript">
           <div className="border-b bg-white">
-            <TabsList className="h-10 w-full justify-start bg-transparent px-6 py-0">
+            <TabsList className="h-10 w-full justify-start bg-transparent  py-0">
               <TabsTrigger
                 value="transcript"
                 className="rounded-none text-sm data-[state=active]:border-b-2 data-[state=active]:border-slate-500 data-[state=active]:bg-slate-100">
@@ -94,6 +93,7 @@ export default function NewSessionPage() {
                 className="rounded-none text-sm data-[state=active]:border-b-2 data-[state=active]:border-slate-500 data-[state=active]:bg-slate-100">
                 Note
               </TabsTrigger>
+              <WarningBar />
             </TabsList>
           </div>
 
