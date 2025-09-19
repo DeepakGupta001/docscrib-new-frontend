@@ -11,6 +11,21 @@ import Footer from "./_components/Footer";
 import WarningBar from "./_components/WarningBar";
 import { TranscriptView } from "./_components/transcript-view";
 
+async function createVisit(patientId: number, templateId: number) {
+  try {
+    const res = await fetch("http://localhost:5000/api/visits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ patientId, templateId })
+    });
+    if (!res.ok) throw new Error("Failed to create visit");
+    return await res.json();
+  } catch (err) {
+    console.error("Error creating visit:", err);
+    return null;
+  }
+}
+
 export default function NewSessionPage() {
   const [transcriptData, setTranscriptData] = useState({
     transcript: "",
@@ -39,7 +54,10 @@ export default function NewSessionPage() {
     [hasStartedRecording]
   );
 
-  const handleStartNewRecording = useCallback(() => {
+  const handleStartNewRecording = useCallback(async () => {
+    // Call create visit API when starting new recording
+    await createVisit(1, 1);
+
     setTranscriptData({
       transcript: "",
       isRecording: false,
@@ -53,12 +71,12 @@ export default function NewSessionPage() {
   return (
     <div className="h-full bg-slate-50">
       {/* Header */}
-
+      <WarningBar />
       <Header onTranscriptUpdate={handleTranscriptUpdate} />
 
       {/* Main Content */}
       <div className="bg-slate-50">
-        <Tabs defaultValue="note">
+        <Tabs defaultValue="transcript">
           <div className="border-b bg-white">
             <TabsList className="h-10 w-full justify-start bg-transparent px-6 py-0">
               <TabsTrigger
@@ -83,29 +101,15 @@ export default function NewSessionPage() {
             <NoteTab />
           </TabsContent>
 
-          <TabsContent value="transcript" className="m-0 px-4 py-8">
-            {transcriptData.isRecording || transcriptData.transcript || hasStartedRecording ? (
-              <TranscriptView
-                transcript={transcriptData.transcript}
-                isRecording={transcriptData.isRecording}
-                isPaused={transcriptData.isPaused}
-                currentTime={transcriptData.currentTime}
-                error={transcriptData.error}
-                onStartNewRecording={handleStartNewRecording}
-              />
-            ) : (
-              <TranscriptTab />
-            )}
+          <TabsContent value="transcript" className="m-0 px-0 py-4">
+            <TranscriptTab onStartRecording={handleStartNewRecording} />
           </TabsContent>
 
-          <TabsContent value="context" className="m-0 px-4 py-8">
+          <TabsContent value="context" className="m-0 px-0 py-4">
             <ContextTab />
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* <Footer /> */}
-      <WarningBar />
     </div>
   );
 }

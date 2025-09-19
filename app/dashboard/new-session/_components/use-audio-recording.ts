@@ -15,6 +15,9 @@ export function useAudioRecording({
 }: UseAudioRecordingProps) {
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
+  const audioChunksRef = useRef<BlobPart[]>([])
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -34,6 +37,25 @@ export function useAudioRecording({
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
       mediaStreamRef.current = stream
+
+      // Create MediaRecorder for saving audio
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" })
+        setAudioBlob(blob)
+        audioChunksRef.current = []
+      }
+
+      mediaRecorder.start()
 
       // Create audio context
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
@@ -84,6 +106,10 @@ export function useAudioRecording({
       audioContextRef.current.close()
       audioContextRef.current = null
     }
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current = null
+    }
   }, [])
 
   // Start/stop recording based on state
@@ -107,6 +133,7 @@ export function useAudioRecording({
   return {
     transcript,
     error,
-    clearTranscript
+    clearTranscript,
+    audioBlob
   }
 }

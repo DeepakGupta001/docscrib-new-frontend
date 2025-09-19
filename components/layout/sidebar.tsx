@@ -26,6 +26,18 @@ type SidebarNavLinkProps = {
 };
 
 export const SidebarNavLink: React.FC<SidebarNavLinkProps> = ({ item }: SidebarNavLinkProps) => {
+  if ((item as any).disabled) {
+    return (
+      <div
+        key={item.title + item.href}
+        className="px-3 py-2 flex items-center gap-3 rounded-lg opacity-50 cursor-not-allowed select-none"
+      >
+        {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
+        {item.title}
+      </div>
+    );
+  }
+
   return (
     <Anchor
       href={item.href}
@@ -157,6 +169,18 @@ export default function Sidebar() {
                           {item.title}
                           {item.kbd && <span className="ms-auto text-xs text-muted-foreground">{item.kbd}</span>}
                         </button>
+                      );
+                    }
+                    if ((item as any).disabled) {
+                      return (
+                        <div
+                          key={item.title + item.href}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 opacity-50 cursor-not-allowed select-none ${index === route.items.length - 1 ? 'mb-2' : ''}`}
+                        >
+                          {item.icon && <Icon name={item.icon} className="h-4 w-4" />}
+                          {item.title}
+                          {item.kbd && <span className="ms-auto text-xs text-muted-foreground">{item.kbd}</span>}
+                        </div>
                       );
                     }
                     return (
