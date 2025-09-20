@@ -23,9 +23,13 @@ export default function LoginV2() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard/default";
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const { user, token } = useSelector((state) => state.auth);
+  const { user, token, loading } = useSelector((state) => state.auth);
 
   console.log("user=", user, token);
+
+  useEffect(() => {
+    //
+  }, [user?.id]);
 
   const handleGoogleLoginSuccess = async (data: any) => {
     setIsGoogleLoading(true); // Keep loading active during API call
