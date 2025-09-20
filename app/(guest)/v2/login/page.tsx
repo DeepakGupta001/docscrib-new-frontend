@@ -14,7 +14,7 @@ import GoogleLoginHookComponent from "@/components/GoogleLoginHookComponent";
 import { GoogleButton } from "../_components/social-auth/google-button";
 import { authApi } from "@/lib/api";
 import AuthGuard from "@/components/auth-guard";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { login } from "@/redux/authSlice";
 
 export default function LoginV2() {
@@ -23,33 +23,36 @@ export default function LoginV2() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard/default";
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { user, token } = useSelector((state) => state.auth);
+
+  console.log("user=", user, token);
 
   const handleGoogleLoginSuccess = async (data: any) => {
     setIsGoogleLoading(true); // Keep loading active during API call
 
-    // const result = await dispatch(
-    //   login({
-    //     googleId: data.sub,
-    //     email: data.email,
-    //     name: data.name,
-    //     picture: data.picture,
-    //     accessToken: data.access_token
-    //   })
-    // );
-
     try {
-      // Send the Google user data to your backend for authentication
-      await authApi.googleCallback({
-        googleId: data.sub,
-        email: data.email,
-        name: data.name,
-        picture: data.picture,
-        accessToken: data.access_token
-      });
+      const result = await dispatch(
+        login({
+          googleId: data.sub,
+          email: data.email,
+          name: data.name,
+          picture: data.picture,
+          accessToken: data.access_token
+        })
+      );
 
-      toast.success("Login successful!", {
-        description: "Welcome back! Redirecting..."
-      });
+      // Send the Google user data to your backend for authentication
+      // await authApi.googleCallback({
+      //   googleId: data.sub,
+      //   email: data.email,
+      //   name: data.name,
+      //   picture: data.picture,
+      //   accessToken: data.access_token
+      // });
+
+      // toast.success("Login successful!", {
+      //   description: "Welcome back! Redirecting..."
+      // });
 
       // Redirect to dashboard
       router.push(redirectTo);

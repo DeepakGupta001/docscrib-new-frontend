@@ -1,20 +1,31 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { authApi } from "@/lib/api";
 
 export const login = createAsyncThunk("auth/login", async (params, { rejectWithValue }) => {
   try {
-    const { router, ...rest } = params;
-    const {
-      data: { data, code, message }
-    } = await axios.post("/users/sign_in", rest);
+    const { router, ...data } = params;
 
-    if (code === 200) {
-      Cookies.set("__Dcocscrib_user", JSON.stringify(data), { expires: 7 });
-      return data; // should contain { user, token }
-    } else {
-      return rejectWithValue(message);
-    }
+    const result = await authApi.googleCallback({
+      googleId: data.sub,
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+      accessToken: data.access_token
+    });
+
+    return result; // should contain { user, token }
+    // const {
+    //   data: { data, code, message }
+    // } = await axios.post("/users/sign_in", rest);
+
+    // if (code === 200) {
+    //   Cookies.set("__Dcocscrib_user", JSON.stringify(data), { expires: 7 });
+    //   return data; // should contain { user, token }
+    // } else {
+    //   return rejectWithValue(message);
+    // }
   } catch (error) {
     return rejectWithValue(error.response?.data?.message || "Login failed");
   }
