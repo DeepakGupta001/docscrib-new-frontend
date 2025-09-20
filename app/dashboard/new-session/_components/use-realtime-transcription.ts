@@ -2,146 +2,144 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// Type declarations for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message?: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
+}
+
+declare var SpeechRecognition: {
+  prototype: SpeechRecognition;
+  new(): SpeechRecognition;
+};
+
 export function useRealtimeTranscription(isRecording: boolean) {
   const [transcript, setTranscript] = useState("");
-  const wsRef = useRef<WebSocket | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     if (!isRecording) {
-      // Clean up when stopping recording
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current = null;
+      // Stop recognition when not recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
       }
       return;
     }
 
-    const DEEPGRAM_API_KEY = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
-    if (!DEEPGRAM_API_KEY) {
-      console.error("Missing Deepgram API key in .env");
+    // Check if Web Speech API is supported
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.error("Web Speech API not supported in this browser");
       return;
     }
 
-    // Create WebSocket connection with proper query parameters
-    const wsUrl = new URL("wss://api.deepgram.com/v1/listen");
-    wsUrl.searchParams.set("encoding", "linear16");
-    wsUrl.searchParams.set("sample_rate", "16000");
-    wsUrl.searchParams.set("channels", "1");
-    wsUrl.searchParams.set("interim_results", "true");
-    wsUrl.searchParams.set("punctuate", "true");
-    wsUrl.searchParams.set("smart_format", "true");
+    // Create speech recognition instance
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
 
-    // Deepgram Realtime API requires token as subprotocol
-    const ws = new WebSocket(
-      wsUrl.toString(),
-      ["token", DEEPGRAM_API_KEY]
-    );
-    wsRef.current = ws;
+    // Configure recognition settings
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US'; // You can make this configurable
 
-    // Set authorization header properly
-    ws.addEventListener("open", () => {
-      console.log("Connected to Deepgram Realtime API");
-      
-      
-      // Start capturing audio after connection is open
-      startAudioCapture();
-    });
+    // Handle recognition results
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
 
-    const startAudioCapture = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            sampleRate: 16000,
-            channelCount: 1,
-            sampleSize: 16
-          } 
-        });
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
 
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'audio/webm;codecs=opus'
-        });
-        mediaRecorderRef.current = mediaRecorder;
+      // Update transcript with both final and interim results
+      setTranscript((prev) => {
+        // Remove interim results and add final results
+        const currentFinal = prev.replace(/\s*\[.*?\]\s*$/, ''); // Remove any previous interim text in brackets
+        const newTranscript = currentFinal + finalTranscript;
 
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            // Convert to proper format and send to Deepgram
-            event.data.arrayBuffer().then(buffer => {
-              ws.send(buffer);
-            });
-          }
-        };
+        // Add interim results in brackets if any
+        if (interimTranscript.trim()) {
+          return newTranscript + ' [' + interimTranscript + ']';
+        }
 
-        mediaRecorder.start(250); // Send data every 250ms
-      } catch (error) {
-        console.error("Error accessing microphone:", error);
+        return newTranscript;
+      });
+    };
+
+    // Handle recognition start
+    recognition.onstart = () => {
+      console.log("Speech recognition started");
+    };
+
+    // Handle recognition end
+    recognition.onend = () => {
+      console.log("Speech recognition ended");
+      // If still recording, restart recognition (continuous mode might stop)
+      if (isRecording) {
+        try {
+          recognition.start();
+        } catch (error) {
+          console.error("Error restarting speech recognition:", error);
+        }
       }
     };
 
-    ws.addEventListener("message", (message) => {
-      try {
-        const data = JSON.parse(message.data);
-        
-        // Handle transcription response
-        if (data.type === "Results" && data.channel?.alternatives?.[0]?.transcript) {
-          const transcriptText = data.channel.alternatives[0].transcript.trim();
-          if (transcriptText.length > 0) {
-            if (data.is_final) {
-              setTranscript((prev) => (prev + " " + transcriptText).trim());
-            } else {
-              // Show interim results in UI as well
-              setTranscript((prev) => (prev + " " + transcriptText).trim());
-            }
-          }
-        }
-        
-        // Handle metadata
-        if (data.type === "Metadata") {
-          console.log("Metadata:", data);
-        }
-        
-        // Handle finalize response
-        if (data.type === "Finalize") {
-          console.log("Finalization complete");
-        }
-        
-      } catch (error) {
-        console.error("Error parsing message:", error);
+    // Handle errors
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === 'not-allowed') {
+        console.error("Microphone permission denied");
       }
-    });
+    };
 
-    ws.addEventListener("error", (err) => {
-      console.error("Deepgram WebSocket error:", err);
-      
-    });
+    // Start recognition
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("Error starting speech recognition:", error);
+    }
 
-    ws.addEventListener("close", (event) => {
-      console.log("Deepgram connection closed:", event.code, event.reason);
-      
-    });
-
+    // Cleanup function
     return () => {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      }
-      if (ws) {
-        // Send close message before closing
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "CloseStream" }));
-        }
-        ws.close();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
       }
     };
   }, [isRecording]);
 
-  return { 
-    transcript, 
-    
+  return {
+    transcript: transcript.replace(/\s*\[.*?\]\s*$/, ''), // Remove interim text in brackets for final output
     clearTranscript: () => setTranscript("")
   };
 }

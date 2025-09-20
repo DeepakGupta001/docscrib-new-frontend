@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 const FormSchema = z
   .object({
@@ -31,6 +32,7 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { register } = useAuth();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -46,16 +48,39 @@ export function RegisterForm() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsLoading(true);
     try {
-      await authApi.register(data.firstName, data.lastName, data.email, data.password);
-      toast.success("Registration successful!", {
-        description: "Your account has been created. You can now log in.",
-      });
-      // Optionally redirect to login page
-      router.push("/v2/login");
-    } catch (error) {
+      const response = await authApi.register(data.email, data.password, data.firstName, data.lastName);
+
+      // Pass the API response to the use-auth hook to set user state
+      await register(response);
+
+      if (response.success && response.data?.user) {
+        toast.success("Registration successful!", {
+          description: "Welcome! Your account has been created and you're now logged in.",
+        });
+        // Redirect to dashboard since user is now authenticated
+        router.push("/dashboard/default");
+      } else {
+        // This shouldn't happen if the API is working correctly, but handle it just in case
+        throw new Error("Registration failed unexpectedly");
+      }
+    } catch (error: any) {
       console.error("Registration error:", error);
-      toast.error("Registration failed", {
-        description: error instanceof Error ? error.message : "Please check your information and try again.",
+
+      let errorMessage = "Please check your information and try again.";
+      let errorTitle = "Registration failed";
+
+      // Handle specific error types from new API
+      if (error.message) {
+        if (error.message.includes("User with this email already exists")) {
+          errorMessage = "An account with this email address already exists.";
+          errorTitle = "Email Already Exists";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      toast.error(errorTitle, {
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

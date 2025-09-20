@@ -107,7 +107,7 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <div className="cursor-pointer">
               <UserAvatar
-                image={user?.profileImageUrl}
+                image={user?.profile_image_url}
                 fallback={`${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`}
                 className="h-12 w-12 rounded-full"
               />

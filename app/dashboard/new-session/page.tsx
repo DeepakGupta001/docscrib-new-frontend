@@ -102,7 +102,11 @@ export default function NewSessionPage() {
           </TabsContent>
 
           <TabsContent value="transcript" className="m-0 px-0 py-4">
-            <TranscriptTab onStartRecording={handleStartNewRecording} />
+            <TranscriptTab
+              onStartRecording={handleStartNewRecording}
+              isRecording={transcriptData.isRecording}
+              transcript={transcriptData.transcript}
+            />
           </TabsContent>
 
           <TabsContent value="context" className="m-0 px-0 py-4">

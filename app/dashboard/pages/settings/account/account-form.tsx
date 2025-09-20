@@ -178,7 +178,8 @@ export function AccountForm() {
 
   // Populate personal form with user data when available
   useEffect(() => {
-    if (user && !isLoading) {
+    if (user) {
+      console.log("Populating personal form with user data:", user);
       const mappedTitle = mapTitleToSelectValue(user.title);
       const mappedSpecialty = mapSpecialtyToSelectValue(user.specialization);
       const mappedRole = mapRoleToSelectValue(user.role);
@@ -188,8 +189,8 @@ export function AccountForm() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         specialty: mappedSpecialty,
-        organisationName: user.organisationName || "",
-        companySize: user.companySize || "",
+        organisationName: user.organisation_name || "",
+        companySize: user.company_size || "",
         role: mappedRole,
         country: user.country || "",
       };

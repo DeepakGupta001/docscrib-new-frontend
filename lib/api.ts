@@ -2,6 +2,10 @@ import { handleApiError } from "./error-handler";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
+// Global flag to prevent multiple simultaneous token refresh attempts
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorMessage = `HTTP error! status: ${res.status}`;
@@ -37,23 +41,154 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined
+  data?: unknown | undefined,
+  retryCount = 0
 ): Promise<Response> {
   const isFormData = data instanceof FormData;
 
   // Prepend base URL if the URL doesn't already include it
   const fullUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
 
+  // Prepare headers
+  const headers: Record<string, string> = {};
+
+  // Add Content-Type for JSON data
+  if (data && !isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  // Add Authorization header with JWT token for authenticated requests
+  const accessToken = tokenManager.getAccessToken();
+  if (accessToken && !tokenManager.isTokenExpired(accessToken)) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
   const res = await fetch(fullUrl, {
     method,
-    headers: data && !isFormData ? { "Content-Type": "application/json" } : {},
-    body: isFormData ? data : data ? JSON.stringify(data) : undefined,
-    credentials: "include"
+    headers,
+    body: isFormData ? data : data ? JSON.stringify(data) : undefined
   });
+
+  // Handle 401 errors by attempting token refresh (only once)
+  if (res.status === 401 && retryCount === 0) {
+    try {
+      // Prevent multiple simultaneous refresh attempts
+      if (isRefreshing) {
+        if (refreshPromise) {
+          await refreshPromise;
+        }
+      } else {
+        isRefreshing = true;
+        refreshPromise = tokenManager.refreshAccessToken();
+        await refreshPromise;
+        isRefreshing = false;
+        refreshPromise = null;
+      }
+
+      // Retry the original request with the new token
+      return apiRequest(method, url, data, retryCount + 1);
+    } catch (refreshError) {
+      // If refresh fails, clear tokens and throw the original error
+      tokenManager.clearTokens();
+      throw new Error("Authentication failed. Please log in again.");
+    }
+  }
 
   await throwIfResNotOk(res);
   return res;
 }
+
+// JWT token management utilities
+const TOKEN_KEY = "auth_tokens";
+
+export const tokenManager = {
+  setTokens(accessToken: string, refreshToken: string) {
+    if (typeof window !== "undefined") {
+      // Store in localStorage for client-side access
+      localStorage.setItem(
+        TOKEN_KEY,
+        JSON.stringify({
+          accessToken,
+          refreshToken,
+          timestamp: Date.now()
+        })
+      );
+
+      // Also set HttpOnly cookies for server-side access (middleware)
+      // Note: We can't set HttpOnly cookies from client-side JavaScript
+      // This would need to be done server-side, but for now we'll use a different approach
+      // The middleware will check both cookies and localStorage
+    }
+  },
+
+  getTokens() {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem(TOKEN_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  getAccessToken() {
+    const tokens = this.getTokens();
+    return tokens?.accessToken || null;
+  },
+
+  getRefreshToken() {
+    const tokens = this.getTokens();
+    return tokens?.refreshToken || null;
+  },
+
+  clearTokens() {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  },
+
+  isTokenExpired(token: string) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;
+    }
+  },
+
+  async refreshAccessToken() {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+
+      if (!response.ok) {
+        throw new Error("Token refresh failed");
+      }
+
+      const data = await response.json();
+      if (data.success && data.data?.tokens) {
+        this.setTokens(data.data.tokens.accessToken, data.data.tokens.refreshToken);
+        return data.data.tokens.accessToken;
+      } else {
+        throw new Error("Invalid refresh response");
+      }
+    } catch (error) {
+      // Clear tokens on refresh failure
+      this.clearTokens();
+      throw error;
+    }
+  }
+};
 
 // Authentication API functions
 export const authApi = {
@@ -62,17 +197,31 @@ export const authApi = {
       email,
       password
     });
-    return response.json();
+    const data = await response.json();
+
+    // Store JWT tokens if login successful
+    if (data.success && data.data?.tokens) {
+      tokenManager.setTokens(data.data.tokens.accessToken, data.data.tokens.refreshToken);
+    }
+
+    return data;
   },
 
-  async register(firstName: string, lastName: string, email: string, password: string) {
+  async register(email: string, password: string, firstName: string, lastName: string) {
     const response = await apiRequest("POST", "/api/auth/register", {
-      firstName,
-      lastName,
       email,
-      password
+      password,
+      first_name: firstName,
+      last_name: lastName
     });
-    return response.json();
+    const data = await response.json();
+
+    // Store JWT tokens if registration successful
+    if (data.success && data.data?.tokens) {
+      tokenManager.setTokens(data.data.tokens.accessToken, data.data.tokens.refreshToken);
+    }
+
+    return data;
   },
 
   async getCurrentUser() {
@@ -80,22 +229,10 @@ export const authApi = {
     return response.json();
   },
 
-  async updateCurrentUser(data: {
-    firstName?: string;
-    lastName?: string;
-    title?: string;
-    specialization?: string;
-    organisationName?: string;
-    companySize?: string;
-    country?: string;
-    role?: string;
-  }) {
-    const response = await apiRequest("PUT", "/api/auth/me", data);
-    return response.json();
-  },
-
   async logout() {
-    const response = await apiRequest("POST", "/api/auth/logout");
+    const response = await apiRequest("POST", "/api/auth/logout", {
+      refresh_token: tokenManager.getRefreshToken()
+    });
     return response.json();
   },
 
@@ -113,6 +250,16 @@ export const authApi = {
   async uploadProfileImage(formData: FormData) {
     const response = await apiRequest("POST", "/api/auth/upload-profile-image", formData);
     return response.json();
+  },
+
+  async completeOnboarding(data: {
+    specialization: string;
+    organisation_name: string;
+    company_size: string;
+    role: string;
+  }) {
+    const response = await apiRequest("POST", "/api/auth/onboarding", data);
+    return response.json();
   }
 };
 
@@ -121,12 +268,12 @@ export const templateApi = {
   // Get all templates with optional filtering and pagination
   async getTemplates(params?: {
     query?: string;
-    type?: 'note' | 'document' | 'pdf';
-    visibility?: 'only-me' | 'team' | 'community';
+    type?: "note" | "document" | "pdf";
+    visibility?: "only-me" | "team" | "community";
     isFavorite?: boolean;
     creator?: string;
-    sortBy?: 'name' | 'type' | 'uses' | 'lastUsed' | 'creator' | 'createdAt' | 'updatedAt';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "name" | "type" | "uses" | "lastUsed" | "creator" | "createdAt" | "updatedAt";
+    sortOrder?: "asc" | "desc";
     limit?: number;
     offset?: number;
     dateFrom?: string;
@@ -137,7 +284,7 @@ export const templateApi = {
     highlightContribution?: boolean;
   }) {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -145,8 +292,8 @@ export const templateApi = {
         }
       });
     }
-    
-    const url = `/api/templates${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+
+    const url = `/api/templates${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
     const response = await apiRequest("GET", url);
     return response.json();
   },
@@ -166,9 +313,9 @@ export const templateApi = {
   // Create a new template
   async createTemplate(data: {
     name: string;
-    type: 'note' | 'document';
+    type: "note" | "document";
     content: string;
-    visibility?: 'only-me' | 'team' | 'community';
+    visibility?: "only-me" | "team" | "community";
     isDefault?: boolean;
     highlightContribution?: boolean;
     metadata?: any;
@@ -184,22 +331,28 @@ export const templateApi = {
   },
 
   // Update template
-  async updateTemplate(id: number, data: {
-    name?: string;
-    content?: string;
-    visibility?: 'only-me' | 'team' | 'community';
-    isDefault?: boolean;
-    metadata?: any;
-  }) {
+  async updateTemplate(
+    id: number,
+    data: {
+      name?: string;
+      content?: string;
+      visibility?: "only-me" | "team" | "community";
+      isDefault?: boolean;
+      metadata?: any;
+    }
+  ) {
     const response = await apiRequest("PUT", `/api/templates/${id}`, data);
     return response.json();
   },
 
   // Update template visibility
-  async updateTemplateVisibility(id: number, data: {
-    visibility: 'only-me' | 'team' | 'community';
-    highlightContribution?: boolean;
-  }) {
+  async updateTemplateVisibility(
+    id: number,
+    data: {
+      visibility: "only-me" | "team" | "community";
+      highlightContribution?: boolean;
+    }
+  ) {
     const response = await apiRequest("PATCH", `/api/templates/${id}/visibility`, data);
     return response.json();
   },
@@ -228,12 +381,12 @@ export const templateApi = {
   // Advanced search with statistics
   async advancedSearch(params?: {
     query?: string;
-    type?: 'note' | 'document' | 'pdf';
-    visibility?: 'only-me' | 'team' | 'community';
+    type?: "note" | "document" | "pdf";
+    visibility?: "only-me" | "team" | "community";
     isFavorite?: boolean;
     creator?: string;
-    sortBy?: 'name' | 'type' | 'uses' | 'lastUsed' | 'creator' | 'createdAt' | 'updatedAt';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "name" | "type" | "uses" | "lastUsed" | "creator" | "createdAt" | "updatedAt";
+    sortOrder?: "asc" | "desc";
     limit?: number;
     offset?: number;
     dateFrom?: string;
@@ -245,7 +398,7 @@ export const templateApi = {
     includeStats?: boolean;
   }) {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -253,8 +406,8 @@ export const templateApi = {
         }
       });
     }
-    
-    const url = `/api/templates/search/advanced${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+
+    const url = `/api/templates/search/advanced${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
     const response = await apiRequest("GET", url);
     return response.json();
   },
@@ -262,13 +415,13 @@ export const templateApi = {
   // Get community templates
   async getCommunityTemplates(params?: {
     query?: string;
-    type?: 'note' | 'document' | 'pdf';
+    type?: "note" | "document" | "pdf";
     creator?: string;
     limit?: number;
     offset?: number;
   }) {
     const searchParams = new URLSearchParams();
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -276,17 +429,14 @@ export const templateApi = {
         }
       });
     }
-    
-    const url = `/api/templates/community${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+
+    const url = `/api/templates/community${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
     const response = await apiRequest("GET", url);
     return response.json();
   },
 
   // Generate AI template
-  async generateTemplate(data: {
-    instructions: string;
-    source?: "existing" | "blank";
-  }) {
+  async generateTemplate(data: { instructions: string; source?: "existing" | "blank" }) {
     const response = await apiRequest("POST", "/api/templates/generate", data);
     return response.json();
   }

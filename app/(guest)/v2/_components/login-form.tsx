@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authApi } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -26,6 +27,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard/default";
+  const { login } = useAuth();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -39,15 +41,41 @@ export function LoginForm() {
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     setIsLoading(true);
     try {
-      await authApi.login(data.email, data.password);
-      toast.success("Login successful!", {
-        description: "Welcome back! Redirecting...",
-      });
-      router.push(redirectTo);
-    } catch (error) {
+      const response = await authApi.login(data.email, data.password);
+
+      // Pass the API response to the use-auth hook to set user state
+      await login(response);
+
+      if (response.success && response.data?.user) {
+        toast.success("Login successful!", {
+          description: "Welcome back! Redirecting...",
+        });
+        router.push(redirectTo);
+      } else {
+        // This shouldn't happen if the API is working correctly, but handle it just in case
+        throw new Error("Login failed unexpectedly");
+      }
+    } catch (error: any) {
       console.error("Login error:", error);
-      toast.error("Login failed", {
-        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
+
+      let errorMessage = "Please check your credentials and try again.";
+      let errorTitle = "Login failed";
+
+      // Handle specific error types from new API
+      if (error.message) {
+        if (error.message.includes("Invalid email or password")) {
+          errorMessage = "The email or password you entered is incorrect.";
+          errorTitle = "Invalid Credentials";
+        } else if (error.message.includes("Account is deactivated")) {
+          errorMessage = "Your account has been deactivated. Please contact support.";
+          errorTitle = "Account Deactivated";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      toast.error(errorTitle, {
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);

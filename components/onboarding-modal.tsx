@@ -115,11 +115,11 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
     setIsSubmitting(true);
     try {
       // Save the data to the backend
-      await authApi.updateCurrentUser({
+      await authApi.completeOnboarding({
         specialization: data.specialty,
         role: data.role,
-        organisationName: data.organisationName,
-        companySize: data.companySize,
+        organisation_name: data.organisationName,
+        company_size: data.companySize,
       });
 
       toast.success("Welcome! Your profile has been set up successfully.", {

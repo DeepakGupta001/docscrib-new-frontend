@@ -114,7 +114,7 @@ export function PersonalTab({ form, onSubmit, user, isSubmitting = false }: Pers
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-lg border">
                     <Avatar className="h-16 w-16">
                         <AvatarImage
-                            src={user?.profileImageUrl ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${user.profileImageUrl}` : ""}
+                            src={user?.profile_image_url ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${user.profile_image_url}` : ""}
                             alt="Profile"
                         />
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">

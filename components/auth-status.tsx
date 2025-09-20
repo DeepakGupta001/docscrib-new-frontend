@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 
 export default function AuthStatus() {
   const { isAuthenticated, isLoading, user } = useAuth();
-
+console.log("AuthStatus - isAuthenticated:", isAuthenticated, "isLoading:", isLoading, "user:", user);
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Checking authentication...</div>;
   }

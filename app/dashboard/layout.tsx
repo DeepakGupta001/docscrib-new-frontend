@@ -1,9 +1,14 @@
 import MainLayout from "@/components/main-layout";
+import { ProtectedRoute } from "@/components/auth-guard";
 
 export default function AuthLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <MainLayout>{children}</MainLayout>;
+  return (
+    <ProtectedRoute>
+      <MainLayout>{children}</MainLayout>
+    </ProtectedRoute>
+  );
 }

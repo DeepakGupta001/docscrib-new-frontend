@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +22,15 @@ export default function DashboardPage() {
   useEffect(() => {
     // Check if user needs onboarding based on profile data
     if (user) {
-      const needsOnboarding = !user.companySize || user.companySize === '' ||
-                             !user.role || user.role === '' ||
-                             !user.specialization || user.specialization === '' ||
-                             !user.organisationName || user.organisationName === '';
+      const needsOnboarding =
+        !user.company_size ||
+        user.company_size === "" ||
+        !user.role ||
+        user.role === "" ||
+        !user.specialization ||
+        user.specialization === "" ||
+        !user.organisation_name ||
+        user.organisation_name === "";
 
       if (needsOnboarding) {
         // Show onboarding modal after a brief delay for better UX
@@ -48,7 +53,7 @@ export default function DashboardPage() {
   return (
     <div className="h-full bg-slate-50">
       <div className="p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto max-w-7xl">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -62,13 +67,13 @@ export default function DashboardPage() {
             <div className="flex flex-wrap gap-4">
               <Button asChild className="bg-blue-600 hover:bg-blue-700">
                 <Link href="/dashboard/new-session">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="mr-2 h-4 w-4" />
                   New Session
                 </Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link href="/dashboard/pages/tasks">
-                  <FileText className="w-4 h-4 mr-2" />
+                  <FileText className="mr-2 h-4 w-4" />
                   View Tasks
                 </Link>
               </Button>
@@ -76,7 +81,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
@@ -84,9 +89,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">24</div>
-                <p className="text-xs text-muted-foreground">
-                  +2 from last week
-                </p>
+                <p className="text-xs text-muted-foreground">+2 from last week</p>
               </CardContent>
             </Card>
 
@@ -97,9 +100,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">3</div>
-                <p className="text-xs text-muted-foreground">
-                  Currently in progress
-                </p>
+                <p className="text-xs text-muted-foreground">Currently in progress</p>
               </CardContent>
             </Card>
 
@@ -110,9 +111,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">8</div>
-                <p className="text-xs text-muted-foreground">
-                  Active collaborators
-                </p>
+                <p className="text-xs text-muted-foreground">Active collaborators</p>
               </CardContent>
             </Card>
 
@@ -123,15 +122,13 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">94%</div>
-                <p className="text-xs text-muted-foreground">
-                  +5% from last month
-                </p>
+                <p className="text-xs text-muted-foreground">+5% from last month</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Recent Sessions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Recent Sessions</CardTitle>
@@ -173,19 +170,19 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/template-library">
-                      <FileText className="w-4 h-4 mr-2" />
+                      <FileText className="mr-2 h-4 w-4" />
                       Browse Templates
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/team">
-                      <Users className="w-4 h-4 mr-2" />
+                      <Users className="mr-2 h-4 w-4" />
                       Manage Team
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/dashboard/pages/settings">
-                      <TrendingUp className="w-4 h-4 mr-2" />
+                      <TrendingUp className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
                   </Button>
@@ -197,10 +194,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Onboarding Modal */}
-      <OnboardingModal
-        isOpen={showOnboarding}
-        onClose={handleOnboardingComplete}
-      />
+      <OnboardingModal isOpen={showOnboarding} onClose={handleOnboardingComplete} />
     </div>
   );
 }

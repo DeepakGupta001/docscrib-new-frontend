@@ -1,19 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
-import { authApi } from "@/lib/api";
+import { authApi, tokenManager } from "@/lib/api";
 
 interface User {
-  id: string;
+  id: number;
   email: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   title?: string;
   specialization?: string;
-  organisationName?: string;
-  companySize?: string;
+  license_number?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_status: string;
+  trial_ends_at?: string | null;
+  subscription_ends_at?: string | null;
+  google_id?: string | null;
+  profile_image_url?: string | null;
+  auth_provider: string;
+  organisation_name?: string;
+  company_size?: string;
   country?: string;
-  role?: string;
+  role: string;
+  // Legacy fields for backward compatibility
+  firstName?: string;
+  lastName?: string;
+  organisationName?: string;
   picture?: string;
-  // Add other user properties as needed
 }
 
 interface AuthState {
@@ -22,10 +37,37 @@ interface AuthState {
   user: User | null;
 }
 
+// Helper functions to manage user data in localStorage
+const USER_STORAGE_KEY = 'auth_user_data';
+
+const storeUserData = (user: User): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  }
+};
+
+const getUserData = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const userData = localStorage.getItem(USER_STORAGE_KEY);
+    return userData ? JSON.parse(userData) : null;
+  } catch (error) {
+    console.error('Failed to parse user data from localStorage:', error);
+    return null;
+  }
+};
+
+const clearUserData = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(USER_STORAGE_KEY);
+  }
+};
+
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
-    isLoading: true, // Start with true to show loading on initial mount
+    isLoading: true,
     user: null
   });
 
@@ -33,90 +75,142 @@ export function useAuth() {
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-      const response = await authApi.getCurrentUser();
-      // Handle different response structures
-      const userData = response.user;
-
-      setAuthState({
-        user: userData,
-        isAuthenticated: true,
-        isLoading: false
-      });
+      // Check if we have valid tokens in localStorage
+      const accessToken = tokenManager.getAccessToken();
+      if (accessToken && !tokenManager.isTokenExpired(accessToken)) {
+        // We have valid tokens, get user data from localStorage
+        const storedUser = getUserData();
+        
+        setAuthState({
+          user: storedUser,
+          isAuthenticated: true,
+          isLoading: false
+        });
+      } else {
+        // No valid tokens
+        clearUserData(); // Clean up stale user data
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false
+        });
+      }
     } catch (error: any) {
       console.error("Auth check failed:", error);
+
+      // Clear both tokens and user data on error
+      tokenManager.clearTokens();
+      clearUserData();
 
       setAuthState({
         user: null,
         isAuthenticated: false,
         isLoading: false
       });
-
-      // If it's a 401/403 error, the session might be expired
-      // Clear any stale cookies by attempting logout
-      if (
-        error instanceof Error &&
-        (error.message.includes("401") ||
-          error.message.includes("403") ||
-          error.message.includes("Unauthorized"))
-      ) {
-        try {
-          await authApi.logout();
-        } catch {
-          // Ignore logout errors during cleanup
-        }
-      }
     }
-  }, []);
+  }, []); // Remove dependency on authState.user
 
-  // Check auth status on mount - removed cookie checking since it's HttpOnly
+  // Check auth status on mount
   useEffect(() => {
     checkAuthStatus();
   }, [checkAuthStatus]);
 
-  const login = useCallback(async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (response: any): Promise<void> => {
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-      const response = await authApi.login(email, password);
-      const userData = response.user || response;
+      // Handle new API response structure
+      if (response.success && response.data?.user) {
+        // Transform API response to match component expectations
+        const apiUser = response.data.user;
+        const transformedUser: User = {
+          ...apiUser,
+          // Add camelCase versions for backward compatibility
+          firstName: apiUser.first_name,
+          lastName: apiUser.last_name,
+          organisationName: apiUser.organisation_name,
+          picture: apiUser.profile_image_url
+        };
 
-      setAuthState({
-        user: userData,
-        isAuthenticated: true,
-        isLoading: false
-      });
-    } catch (error: any) {
-      setAuthState((prev) => ({
-        ...prev,
-        isLoading: false
-      }));
-      throw error; // Re-throw so components can handle the error
-    }
-  }, []);
+        console.log("Transformed User:", transformedUser);
 
-  const register = useCallback(
-    async (firstName: string, lastName: string, email: string, password: string): Promise<void> => {
-      try {
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+        // Store user data in localStorage
+        storeUserData(transformedUser);
 
-        const response = await authApi.register(firstName, lastName, email, password);
+        setAuthState({
+          user: transformedUser,
+          isAuthenticated: true,
+          isLoading: false
+        });
+
+      } else {
+        // Fallback for old response structure
         const userData = response.user || response;
-
+        
+        // Store user data in localStorage
+        storeUserData(userData);
+        
         setAuthState({
           user: userData,
           isAuthenticated: true,
           isLoading: false
         });
-      } catch (error: any) {
-        setAuthState((prev) => ({
-          ...prev,
-          isLoading: false
-        }));
-        throw error; // Re-throw so components can handle the error
       }
-    },
-    []
-  );
+    } catch (error: any) {
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false
+      }));
+      throw error;
+    }
+  }, []);
+
+  const register = useCallback(async (response: any): Promise<void> => {
+    try {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      // Handle new API response structure
+      if (response.success && response.data?.user) {
+        // Transform API response to match component expectations
+        const apiUser = response.data.user;
+        const transformedUser: User = {
+          ...apiUser,
+          // Add camelCase versions for backward compatibility
+          firstName: apiUser.first_name,
+          lastName: apiUser.last_name,
+          organisationName: apiUser.organisation_name,
+          picture: apiUser.profile_image_url
+        };
+
+        // Store user data in localStorage
+        storeUserData(transformedUser);
+
+        setAuthState({
+          user: transformedUser,
+          isAuthenticated: true,
+          isLoading: false
+        });
+      } else {
+        // Fallback for old response structure
+        const userData = response.user || response;
+        
+        // Store user data in localStorage
+        storeUserData(userData);
+        
+        setAuthState({
+          user: userData,
+          isAuthenticated: true,
+          isLoading: false
+        });
+      }
+    } catch (error: any) {
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false
+      }));
+      throw error;
+    }
+  }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
@@ -127,15 +221,16 @@ export function useAuth() {
     } catch (error) {
       console.error("Logout API failed:", error);
     } finally {
+      // Clear JWT tokens and user data
+      tokenManager.clearTokens();
+      clearUserData();
+
       // Clear local state
       setAuthState({
         user: null,
         isAuthenticated: false,
         isLoading: false
       });
-
-      // Note: Don't try to delete HttpOnly cookies from client-side
-      // The server should handle cookie deletion via res.clearCookie()
 
       // Optional: redirect to login page
       if (typeof window !== "undefined") {
@@ -144,38 +239,52 @@ export function useAuth() {
     }
   }, []);
 
-  const updateUser = useCallback(
-    async (data: {
-      firstName?: string;
-      lastName?: string;
-      title?: string;
-      specialization?: string;
-      organisationName?: string;
-      companySize?: string;
-      country?: string;
-      role?: string;
-    }): Promise<void> => {
-      try {
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+  const updateUser = useCallback(async (response: any): Promise<void> => {
+    try {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-        const response = await authApi.updateCurrentUser(data);
-        const updatedUser = response.user || response;
+      // Handle new API response structure
+      if (response.success && response.data?.user) {
+        // Transform API response to match component expectations
+        const apiUser = response.data.user;
+        const transformedUser: User = {
+          ...apiUser,
+          // Add camelCase versions for backward compatibility
+          firstName: apiUser.first_name,
+          lastName: apiUser.last_name,
+          organisationName: apiUser.organisation_name,
+          picture: apiUser.profile_image_url
+        };
+
+        // Update stored user data
+        storeUserData(transformedUser);
 
         setAuthState((prev) => ({
           ...prev,
-          user: updatedUser,
+          user: transformedUser,
           isLoading: false
         }));
-      } catch (error: any) {
+      } else {
+        // Fallback for old response structure
+        const userData = response.user || response;
+        
+        // Update stored user data
+        storeUserData(userData);
+        
         setAuthState((prev) => ({
           ...prev,
+          user: userData,
           isLoading: false
         }));
-        throw error; // Re-throw so components can handle the error
       }
-    },
-    []
-  );
+    } catch (error: any) {
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false
+      }));
+      throw error;
+    }
+  }, []);
 
   const googleCallback = useCallback(
     async (data: {
@@ -191,6 +300,9 @@ export function useAuth() {
         const response = await authApi.googleCallback(data);
         const userData = response.user || response;
 
+        // Store user data in localStorage
+        storeUserData(userData);
+
         setAuthState({
           user: userData,
           isAuthenticated: true,
@@ -201,36 +313,105 @@ export function useAuth() {
           ...prev,
           isLoading: false
         }));
-        throw error; // Re-throw so components can handle the error
+        throw error;
       }
     },
     []
   );
 
-  const uploadProfileImage = useCallback(
-    async (file: File): Promise<string> => {
+  const uploadProfileImage = useCallback(async (file: File): Promise<string> => {
+    try {
+      setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+      const formData = new FormData();
+      formData.append("profileImage", file);
+
+      const response = await authApi.uploadProfileImage(formData);
+      const apiUser = response.user || response;
+
+      // Transform API response to match component expectations
+      const transformedUser: User = {
+        ...apiUser,
+        // Add camelCase versions for backward compatibility
+        firstName: apiUser.first_name,
+        lastName: apiUser.last_name,
+        organisationName: apiUser.organisation_name,
+        picture: apiUser.profile_image_url
+      };
+
+      // Update stored user data
+      storeUserData(transformedUser);
+
+      setAuthState((prev) => ({
+        ...prev,
+        user: transformedUser,
+        isLoading: false
+      }));
+
+      return transformedUser.profile_image_url || transformedUser.picture || "";
+    } catch (error: any) {
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false
+      }));
+      throw error;
+    }
+  }, []);
+
+  const completeOnboarding = useCallback(
+    async (data: {
+      specialization: string;
+      license_number: string;
+      organisation_name: string;
+      company_size: string;
+      country: string;
+      role: string;
+    }): Promise<void> => {
       try {
         setAuthState((prev) => ({ ...prev, isLoading: true }));
 
-        const formData = new FormData();
-        formData.append('profileImage', file);
+        const response = await authApi.completeOnboarding(data);
 
-        const response = await authApi.uploadProfileImage(formData);
-        const updatedUser = response.user || response;
+        // Handle new API response structure
+        if (response.success && response.data?.user) {
+          // Transform API response to match component expectations
+          const apiUser = response.data.user;
+          const transformedUser: User = {
+            ...apiUser,
+            // Add camelCase versions for backward compatibility
+            firstName: apiUser.first_name,
+            lastName: apiUser.last_name,
+            organisationName: apiUser.organisation_name,
+            picture: apiUser.profile_image_url
+          };
 
-        setAuthState((prev) => ({
-          ...prev,
-          user: updatedUser,
-          isLoading: false
-        }));
+          // Store updated user data
+          storeUserData(transformedUser);
 
-        return updatedUser.profileImageUrl || updatedUser.picture || '';
+          setAuthState((prev) => ({
+            ...prev,
+            user: transformedUser,
+            isLoading: false
+          }));
+        } else {
+          // Fallback for old response structure
+          const updatedUser = response.user || response;
+          
+          // Store updated user data
+          storeUserData(updatedUser);
+          
+          setAuthState((prev) => ({
+            ...prev,
+            user: updatedUser,
+            isLoading: false
+          }));
+        }
       } catch (error: any) {
         setAuthState((prev) => ({
           ...prev,
           isLoading: false
         }));
-        throw error; // Re-throw so components can handle the error
+        throw error;
       }
     },
     []
@@ -246,6 +427,7 @@ export function useAuth() {
     updateUser,
     uploadProfileImage,
     googleCallback,
+    completeOnboarding,
     checkAuthStatus,
     // Helper methods
     refreshAuth: checkAuthStatus // Alias for manual auth refresh

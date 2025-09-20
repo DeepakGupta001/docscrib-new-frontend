@@ -26,7 +26,7 @@ import { UploadRecordingModal } from './upload-recording-modal';
 import { MicrophoneErrorModal } from './microphone-error-modal';
 import { MicrophoneSelector } from './microphone-selector';
 import { TranscriptView } from './transcript-view';
-import { useAudioRecording } from './use-audio-recording';
+import { useRealtimeTranscription } from './use-realtime-transcription';
 import { format, isToday } from 'date-fns';
 
 interface HeaderProps {
@@ -60,12 +60,8 @@ export default function Header({ onTranscriptUpdate }: HeaderProps) {
   const [selectedMicrophone, setSelectedMicrophone] = useState<string>("");
   const [showTranscript, setShowTranscript] = useState(false);
   
-  // Audio recording hook
-  const { transcript, error, clearTranscript } = useAudioRecording({
-    isRecording,
-    isPaused,
-    selectedMicrophone
-  });
+  // Web Speech API transcription hook
+  const { transcript, clearTranscript } = useRealtimeTranscription(isRecording);
 
   // Store the callback in a ref to avoid dependency issues
   const onTranscriptUpdateRef = useRef(onTranscriptUpdate);
@@ -456,19 +452,19 @@ export default function Header({ onTranscriptUpdate }: HeaderProps) {
 
   // Update transcript data when it changes
   useEffect(() => {
-    console.log('Header transcript data changed:', { transcript, isRecording, isPaused, recordingTime, error });
+    console.log('Header transcript data changed:', { transcript, isRecording, isPaused, recordingTime });
     if (onTranscriptUpdateRef.current) {
       const data = {
         transcript,
         isRecording,
         isPaused,
         currentTime: formatTime(recordingTime),
-        error
+        error: null
       };
       console.log('Sending transcript update:', data);
       onTranscriptUpdateRef.current(data);
     }
-  }, [transcript, isRecording, isPaused, recordingTime, error]);
+  }, [transcript, isRecording, isPaused, recordingTime]);
 
   const handleStartRecording = async () => {
     try {

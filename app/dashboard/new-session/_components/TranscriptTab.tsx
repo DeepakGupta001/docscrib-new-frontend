@@ -6,15 +6,22 @@ import { useAudioRecording } from "./use-audio-recording";
 
 interface TranscriptTabProps {
   onStartRecording?: () => void;
+  isRecording?: boolean;
+  transcript?: string;
 }
 
-export default function TranscriptTab({ onStartRecording }: TranscriptTabProps = {}) {
-  const [isRecording, setIsRecording] = React.useState(false);
-  const { transcript } = useRealtimeTranscription(isRecording);
-  const { error, audioBlob } = useAudioRecording({ isRecording, isPaused: false });
+export default function TranscriptTab({ onStartRecording, isRecording = false, transcript = "" }: TranscriptTabProps = {}) {
+  const [editableTranscript, setEditableTranscript] = React.useState("");
 
-  const handleToggleRecording = () => {
-    setIsRecording((prev) => !prev);
+  // Update editable transcript when new transcription comes in
+  React.useEffect(() => {
+    if (transcript && transcript !== editableTranscript) {
+      setEditableTranscript(transcript);
+    }
+  }, [transcript]);
+
+  const handleTranscriptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditableTranscript(e.target.value);
   };
 
   return (
@@ -23,8 +30,9 @@ export default function TranscriptTab({ onStartRecording }: TranscriptTabProps =
         rows={18}
         className="h-full w-full rounded-md border border-slate-300 p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         placeholder="Your transcription will appear here..., it can be edited after the recording is complete."
-        value={transcript}
-        readOnly
+        value={editableTranscript}
+        onChange={handleTranscriptChange}
+        readOnly={isRecording} // Make it editable only when not recording
       />
     </div>
   );
